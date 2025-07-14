@@ -4,9 +4,9 @@ import math
 import random
 import time
 
-import config_tdb
-from cardinality import CardinalityModel
-from constraint import TDBMetric
+import tdb.config_tdb
+from tdb.cardinality import CardinalityModel
+from tdb.constraint import TDBMetric
 
 
 class CostOptimizer:
@@ -257,7 +257,7 @@ class CostOptimizer:
             #     if fid != other_fid:
             #         actions.append(('c', self.process_percent_multiple, other_fid, fid))
             # User feedback.
-            if not config_tdb.GUI:
+            if not tdb.config_tdb.GUI:
                 for user_feedback_opt in self.user_feedback_opts:
                     actions.append(('u', user_feedback_opt, fid))
         return actions

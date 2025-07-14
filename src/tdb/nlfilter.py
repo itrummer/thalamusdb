@@ -1,14 +1,7 @@
 import base64
-
-import torch
-import numpy as np
 import matplotlib.pyplot as plt
-from sentence_transformers import util
-import playsound
 import streamlit as st
-
-import config_tdb
-from datatype import DataType
+import tdb.config_tdb
 
 
 class SimilarityProcessor:
@@ -31,112 +24,11 @@ class SimilarityProcessor:
         pass
 
 
-class AudioProcessor(SimilarityProcessor):
-    def __init__(self, dataset, model, preprocess, device):
-        super().__init__(dataset, model, device)
-        self.preprocess = preprocess
-        self.idx_to_embedding = dict()
-        self.text_to_embedding = dict()
-
-    def get_item(self, idx):
-        _, _, audio_path, *_ = self.dataset[idx]
-        return audio_path
-
-    def show(self, idx):
-        audio_path = self.get_item(idx)
-        playsound.playsound(audio_path)
-
-    def compute_scores(self, text, idxs_to_process):
-        """Process new audios and return a mapping from audio index to score.
-        Iterate based on the given input indexes."""
-        idx_to_score = {}
-        for idx in idxs_to_process:
-            embedding = self.idx_to_embedding.get(idx)
-            text_embedding = self.text_to_embedding.get(text)
-            if embedding is None or text_embedding is None:
-                audio, *_ = self.dataset[idx]
-                with torch.no_grad():
-                    input_text = [text]
-                    inputs = self.preprocess(
-                        text=input_text,
-                        audios=audio,
-                        sampling_rate=48000,
-                        return_tensors="pt",
-                        padding=True,
-                    )
-                    if self.device >= 0:
-                        inputs = inputs.to(self.device)
-                    outputs = self.model(**inputs)
-                    embedding = outputs.audio_embeds
-                    text_embedding = outputs.text_embeds
-                    # print(embedding.shape)
-                    # print(embedding)
-                    # print(text_embedding.shape)
-                    # print(text_embedding)
-                    # print(outputs.logits_per_audio)
-                    # print(outputs.logits_per_text)
-                    # embedding, text_embedding = self.model(audio, text)
-                if idx not in self.idx_to_embedding:
-                    self.idx_to_embedding[idx] = embedding
-                if text not in self.text_to_embedding:
-                    self.text_to_embedding[text] = text_embedding
-            idx_to_score[idx] = 100.0 * util.cos_sim(embedding, text_embedding).item()
-            # print(util.cos_sim(embedding, text_embedding))
-        return idx_to_score
-
-
-class ImageProcessor(SimilarityProcessor):
-    def __init__(self, dataset, model, preprocess, device):
-        super().__init__(dataset, model, device)
-        self.preprocess = preprocess
-        self.idx_to_embedding = dict()
-        self.text_to_embedding = dict()
-
-    def get_item(self, idx):
-        img, _ = self.dataset[idx]
-        return img
-
-    def show(self, idx):
-        img = self.get_item(idx)
-        plt.imshow(img)
-        plt.show()
-
-    def compute_scores(self, text, idxs_to_process):
-        """Process new images and return a mapping from image index to score.
-        Iterate based on the given input indexes."""
-        idx_to_score = {}
-        for idx in idxs_to_process:
-            embedding = self.idx_to_embedding.get(idx)
-            text_embedding = self.text_to_embedding.get(text)
-            if embedding is None or text_embedding is None:
-                img, _ = self.dataset[idx]
-                with torch.no_grad():
-                    input_text = [text]
-                    inputs = self.preprocess(
-                        text=input_text,
-                        images=img,
-                        return_tensors="pt",
-                        padding=True,
-                    )
-                    if self.device >= 0:
-                        inputs = inputs.to(self.device)
-                    outputs = self.model(**inputs)
-                    embedding = outputs.image_embeds
-                    text_embedding = outputs.text_embeds
-                if idx not in self.idx_to_embedding:
-                    self.idx_to_embedding[idx] = embedding
-                if text not in self.text_to_embedding:
-                    self.text_to_embedding[text] = text_embedding
-            idx_to_score[idx] = 100.0 * util.cos_sim(embedding, text_embedding).item()
-            # print(util.cos_sim(embedding, text_embedding))
-        return idx_to_score
-
-
 class GPTImageProcessor(SimilarityProcessor):
     def __init__(self, dataset, model):
         super().__init__(dataset, model, None)
         self.text2idx2result = dict()
-        if config_tdb.GUI:
+        if tdb.config_tdb.GUI:
             self.progress_bar = None
 
     def get_item(self, idx):
@@ -156,17 +48,17 @@ class GPTImageProcessor(SimilarityProcessor):
     def compute_scores(self, text, idxs_to_process):
         """Process new images and return a mapping from image index to score.
         Iterate based on the given input indexes."""
-        if config_tdb.GUI:
+        if tdb.config_tdb.GUI:
             display_item = st.empty()
         if text not in self.text2idx2result:
             self.text2idx2result[text] = {}
         idx_to_score = {}
         for idx in idxs_to_process:
-            if config_tdb.GUI:
-                item = self.dataset[idx][0]
+            if tdb.config_tdb.GUI:
+                # item = self.dataset[idx][0]
                 with display_item.container():
                     st.write(f"Image Item Being Processed (See Below):")
-                    st.image(item)
+                    # st.image(item)
                 if self.progress_bar:
                     self.progress_bar.progress(
                         st.session_state["nr_requests"]
@@ -214,7 +106,7 @@ class GPTImageProcessor(SimilarityProcessor):
                 result = int(response.choices[0].message.content)
                 idx_to_score[idx] = result
                 self.text2idx2result[text][idx] = result
-        if config_tdb.GUI:
+        if tdb.config_tdb.GUI:
             display_item.empty()
         return idx_to_score
 
@@ -223,7 +115,7 @@ class GPTTextProcessor(SimilarityProcessor):
     def __init__(self, dataset, model):
         super().__init__(dataset, model, None)
         self.text2idx2result = dict()
-        if config_tdb.GUI:
+        if tdb.config_tdb.GUI:
             self.progress_bar = None
 
     def get_item(self, idx):
@@ -237,14 +129,14 @@ class GPTTextProcessor(SimilarityProcessor):
     def compute_scores(self, text, idxs_to_process):
         """Process new text and return a mapping from text index to score.
         Iterate based on the given input indexes."""
-        if config_tdb.GUI:
+        if tdb.config_tdb.GUI:
             display_item = st.empty()
         if text not in self.text2idx2result:
             self.text2idx2result[text] = {}
         idx_to_score = {}
         for idx in idxs_to_process:
             item = self.dataset[idx]
-            if config_tdb.GUI:
+            if tdb.config_tdb.GUI:
                 with display_item.container():
                     st.write(f"Text Item Being Processed (See Below):")
                     st.write(item)
@@ -287,85 +179,8 @@ class GPTTextProcessor(SimilarityProcessor):
                 result = int(response.choices[0].message.content)
                 idx_to_score[idx] = result
                 self.text2idx2result[text][idx] = result
-        if config_tdb.GUI:
+        if tdb.config_tdb.GUI:
             display_item.empty()
-        return idx_to_score
-
-
-class TextProcessor(SimilarityProcessor):
-    def __init__(self, dataset, model, device):
-        super().__init__(dataset, model, device)
-        self.idx_to_embedding = dict()
-        # Indirectly check if BART model.
-        if hasattr(model, "model"):
-            self.compute_scores = self._compute_scores_bart
-        else:
-            self.compute_scores = self._compute_scores
-
-    def get_item(self, idx):
-        txt = self.dataset[idx]
-        return txt
-
-    def show(self, idx):
-        txt = self.get_item(idx)
-        print(txt)
-
-    def _compute_scores(self, text, idxs_to_process):
-        """Process new text and return a mapping from text index to score.
-        Iterate based on the given input indexes."""
-        if not idxs_to_process:
-            return dict()
-        text_embedding = self.model.encode(text, convert_to_tensor=True).to(self.device)
-        # Split indexes based on cache.
-        idxs_cache = [idx for idx in idxs_to_process if idx in self.idx_to_embedding]
-        idxs_no_cache = [
-            idx for idx in idxs_to_process if idx not in self.idx_to_embedding
-        ]
-        # Get or compute embeddings.
-        if idxs_no_cache:
-            txts = [self.dataset[idx] for idx in idxs_no_cache]
-            embeddings_no_cache = self.model.encode(txts, convert_to_tensor=True).to(
-                self.device
-            )
-            for idx, embedding in zip(
-                idxs_no_cache, embeddings_no_cache.detach().cpu().numpy()
-            ):
-                self.idx_to_embedding[idx] = embedding
-        if idxs_cache:
-            embeddings_cache = torch.from_numpy(
-                np.vstack([self.idx_to_embedding[idx] for idx in idxs_cache])
-            ).to(self.device)
-        embeddings = (
-            embeddings_no_cache
-            if not idxs_cache
-            else (
-                embeddings_cache
-                if not idxs_no_cache
-                else torch.vstack((embeddings_cache, embeddings_no_cache))
-            )
-        )
-        # Compute scores.
-        scores = (
-            util.cos_sim(text_embedding, embeddings).flatten().detach().cpu().tolist()
-        )
-        idxs_to_process = idxs_cache + idxs_no_cache
-        idx_to_score = dict(zip(idxs_to_process, scores))
-        return idx_to_score
-
-    def _compute_scores_bart(self, text, idxs_to_process):
-        """Bart model requires a different implementation."""
-        if not idxs_to_process:
-            return dict()
-        candidate_labels = [text]
-
-        idx_to_score = {}
-        for idx in idxs_to_process:
-            txt = self.dataset[idx]
-            if txt.strip():
-                result = self.model(txt, candidate_labels, multi_label=True)
-                idx_to_score[idx] = result["scores"][0]
-            else:
-                idx_to_score[idx] = 0  # Valid for BART.
         return idx_to_score
 
 
@@ -398,7 +213,7 @@ class FilterResultNrs:
         nr_unsure = self.nr_total - nr_true - nr_false
 
         # Laplace smoothing.
-        if config_tdb.GUI:
+        if tdb.config_tdb.GUI:
             nr_true, nr_false, _ = FilterResultNrs.laplace_smoothing(nr_true, nr_false, nr_unsure)
             nr_unsure = self.nr_total - nr_true - nr_false
         
@@ -419,7 +234,7 @@ class FilterResultNrs:
         nr_unsure = self.u * ratio
         
         # Laplace smoothing.
-        if config_tdb.GUI:
+        if tdb.config_tdb.GUI:
             nr_true, nr_false, nr_unsure = FilterResultNrs.laplace_smoothing(nr_true, nr_false, nr_unsure)
         
         if nr_true + nr_false + nr_unsure > self.nr_total:
@@ -455,18 +270,13 @@ class NLFilter:
         self.col = col
         self.text = text
         # Lower and upper thresholds.
-        self._lower = 0.1 if config_tdb.GUI else None
-        self._upper = 0.9 if config_tdb.GUI else None
+        self._lower = 0.1 if tdb.config_tdb.GUI else None
+        self._upper = 0.9 if tdb.config_tdb.GUI else None
         self._min_score = None
         self._max_score = None
         self.idx_to_score = {}
         # Default process percent.
-        if config_tdb.GUI:
-            self.default_process_percent = 10 / self.col.processor.nr_total
-        else:
-            self.default_process_percent = (
-                0.001 if self.col.datatype == DataType.AUDIO else 0.01
-            )  # if self.col.datatype == DataType.IMG else 0.1
+        self.default_process_percent = 10 / self.col.processor.nr_total
         # Store information for count per ordering.
         self.ordering_to_cnt = {}
 

@@ -3,13 +3,13 @@ import time
 import math
 import streamlit as st
 
-import config_tdb
-from constraint import TDBMetric
-from optimizer import CostOptimizer
-from datatype import DataType
-from nlfilter import NLFilter
-from stats import NLDatabaseInfo
-from query import NLQueryInfo
+import tdb.config_tdb
+from tdb.constraint import TDBMetric
+from tdb.optimizer import CostOptimizer
+from tdb.datatype import DataType
+from tdb.nlfilter import NLFilter
+from tdb.stats import NLDatabaseInfo
+from tdb.query import NLQueryInfo
 
 
 def is_aggregate(select_str):
@@ -104,6 +104,10 @@ class NLDatabase:
 
     def execute_sql(self, sql, result_info):
         start = time.time()
+        tables = self.con.execute('show tables')
+        table_rows = tables.fetchall()
+        print(table_rows)
+        
         result = self.con.execute(sql)
         if result_info is not None:
             result_info['time_sql'] += time.time() - start
@@ -174,7 +178,7 @@ class NLDatabase:
     def profile(self, query, ground_truths=None):
         nl_filters = [NLFilter(self.get_col_by_name(col), text) for col, text in query.nl_preds]
         preprocess_percents = [nl_filter.default_process_percent for nl_filter in nl_filters]
-        preprocess_nr_feedbacks = 0 if config_tdb.GUI else 3
+        preprocess_nr_feedbacks = 0
         result_info = {'time_optimize': 0,
                        'time_sql': 0,
                        'time_ml': 0,
@@ -183,7 +187,9 @@ class NLDatabase:
                        'feedback': [preprocess_nr_feedbacks] * len(nl_filters),
                        'nr_actions': 0}
         # Create scores tables.
+        print('About to add scores tables.')
         for fid, nl_filter in enumerate(nl_filters):
+            print('Adding scores table for NL filter:', nl_filter.text)
             self.execute_sql(f"DROP TABLE IF EXISTS scores{fid}", result_info)
             self.execute_sql(f"CREATE TABLE scores{fid}(sid INTEGER PRIMARY KEY, score FLOAT, processed BOOLEAN)", result_info)
             if nl_filter.idx_to_score:
@@ -201,7 +207,7 @@ class NLDatabase:
             possible_orderings.append(('min', col_name))
             possible_orderings.append(('max', col_name))
         
-        if config_tdb.GUI:
+        if tdb.config_tdb.GUI:
             total_nr_requests = sum(
                 max(int(nl_filter.col.processor.nr_total * preprocess_percents[fid]), 1)
                 for fid, nl_filter in enumerate(nl_filters)
@@ -225,7 +231,7 @@ class NLDatabase:
             end_nl_filter = time.time()
             time_nl_filter = (
                 max(int(nl_filter.col.processor.nr_total * preprocess_percents[fid]), 1)
-                if config_tdb.GUI
+                if tdb.config_tdb.GUI
                 else (end_nl_filter - start_nl_filter)
             )
             print(f'Unit process runtime: {time_nl_filter}')
@@ -235,13 +241,13 @@ class NLDatabase:
             for _ in range(preprocess_nr_feedbacks):
                 ground_truth_threshold = None if ground_truths is None else ground_truths[nl_filter.text]
                 nl_filter.collect_user_feedback(0.5, ground_truth_threshold)
-        if config_tdb.GUI:
+        if tdb.config_tdb.GUI:
             progress_bar.empty()
         return nl_filters, fid2runtime, result_info
 
     def process(self, query, constraint, nl_filters, fid2runtime, result_info, start_time, ground_truths=None, optimizer_mode='local'):
         # Run query.
-        if config_tdb.GUI:
+        if tdb.config_tdb.GUI:
             updated = True
             is_first = True
             display_info = st.empty()
@@ -253,10 +259,10 @@ class NLDatabase:
             error, lus = self.query_to_compute_error(query, nl_filters, print_error=True, result_info=result_info)
             cur_nr_feedbacks = sum(result_info['feedback'])
             cur_runtime = time.time() - start_time
-            if config_tdb.GUI:
+            if tdb.config_tdb.GUI:
                 if not action_queue and not is_first and error > constraint.threshold:
                     # When we under-estimate nesessary cost.
-                    if config_tdb.GUI:
+                    if tdb.config_tdb.GUI:
                             st.session_state['under_estimate'] = True
                 if updated:
                     updated = False
@@ -303,7 +309,7 @@ class NLDatabase:
                     result_info['time_optimize'] += time_optimize
 
                 if action_queue:
-                    if config_tdb.GUI:
+                    if tdb.config_tdb.GUI:
                         updated = True
                         if is_first:
                             is_first = False
@@ -357,7 +363,7 @@ class NLDatabase:
         #     else:
         #         for idx_t in idxs.t:
         #             nl_filter.col.processor.show(idx_t)
-        if config_tdb.GUI:
+        if tdb.config_tdb.GUI:
             display_info.empty()
             st.session_state['under_estimate'] = False
             result_info['is_last'] = True

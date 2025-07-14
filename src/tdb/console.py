@@ -4,12 +4,12 @@ import duckdb
 import numpy as np
 import pandas as pd
 
-from constraint import TDBConstraint
-from datatype import AudioDataset, DataType, ImageDataset
-from query import NLQuery
-from repository import ModelRepository
-from schema import NLColumn, NLDatabase, NLTable
-from nlfilter import ImageProcessor, TextProcessor, AudioProcessor
+from tdb.constraint import TDBConstraint
+from tdb.datatype import DataType, ImageDataset
+from tdb.query import NLQuery
+from tdb.repository import ModelRepository
+from tdb.schema import NLColumn, NLDatabase, NLTable
+from tdb.nlfilter import GPTImageProcessor, GPTTextProcessor
 
 
 class Console:
@@ -113,7 +113,7 @@ class Console:
             if data_type.upper() == 'IMAGE':
                 model, preprocess, t = self.repository.get_image_model()
                 dataset = ImageDataset(file_paths, t)
-                img_processor = ImageProcessor(dataset, model, preprocess, self.repository.device_id)
+                img_processor = GPTImageProcessor(dataset, model, preprocess, self.repository.device_id)
                 table.add(NLColumn(name, DataType.IMG, img_processor))
                 df[name] = np.arange(len(df))
             elif data_type.upper() == 'AUDIO':
@@ -126,7 +126,7 @@ class Console:
                 # df[name] = np.arange(len(df))
             elif data_type.upper() == 'TEXT':
                 text_model = self.repository.get_text_model()
-                text_processor = TextProcessor(df[name], text_model, self.repository.device)
+                text_processor = GPTTextProcessor(df[name], text_model, self.repository.device)
                 table.add(NLColumn(name, DataType.TEXT))
                 table.add(NLColumn(name + "_u", DataType.NUM, text_processor))
                 df[name + "_u"] = np.arange(len(df))

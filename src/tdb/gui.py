@@ -7,17 +7,16 @@ import time
 import pandas as pd
 import altair as alt
 import streamlit as st
+import tdb.config_tdb
 
-from benchmark import ground_truths
-import config_tdb
-from constraint import TDBConstraint
-from datatype import DataType
-from nldbs import get_nldb_by_name
-from optimizer import CostOptimizer
-from query import NLQuery, NLQueryInfo
+from tdb.constraint import TDBConstraint
+from tdb.datatype import DataType
+from tdb.nldbs import get_nldb_by_name
+from tdb.optimizer import CostOptimizer
+from tdb.query import NLQuery, NLQueryInfo
 
 # If GUI, use GPTProcessor and corresponding lower and upper thresholds for NLFilter, and preprocess_nr_feedbacks.
-config_tdb.GUI = True
+tdb.config_tdb.GUI = True
 
 
 class DummyDB:
@@ -104,7 +103,7 @@ class DummyDB:
             self.fid2runtime,
             self.info,
             start_time,
-            ground_truths,
+            None,
             method,
         ):
             yield info
@@ -120,7 +119,7 @@ class DummyDB:
         query = NLQuery(sql)
         constraint = TDBConstraint(*constraint)
         method = "local"
-        for info in self.nldb.run_yield(query, constraint, ground_truths, method):
+        for info in self.nldb.run_yield(query, constraint, None, method):
             yield info
 
 
