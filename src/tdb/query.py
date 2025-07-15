@@ -111,27 +111,8 @@ class NLQueryInfo:
 if __name__ == "__main__":
     sql = "select * from images, furniture, scores0 where images.aid = furniture.aid and nl(img, 'blue chair') and nl(title_u, 'good condition') limit 10"
     query = NLQuery(sql)
-    # print(query)
-    from tdb.nlfilter import NLFilter
-    from tdb.schema import NLColumn
-    from tdb.datatype import DataType
-    
     parsed = parse_one(sql)
     print(type(parsed))
     print(parsed.to_s())
     parsed_from = parsed.args.get('from')
     print(parsed.__dict__)
-    # print(parsed.from_('z').sql())
-    
-    # from_clause = parsed.args.get('from')
-    # scores_table_names = ['score0', 'score1']
-    # scores_tables = [exp.Table(this=name) for name in scores_table_names]
-    # parsed.set('from', exp.From(expressions=scores_tables))
-    # from_clause.expressions.extend(scores_tables)
-    # print(from_clause)
-    # print(parsed.sql())
-    #
-    #
-    # col = NLColumn('img', DataType.TEXT)
-    # nl_filter = NLFilter(col, 'blue chair')
-    # print(query.to_lower_upper_sqls([nl_filter], [0.5]))

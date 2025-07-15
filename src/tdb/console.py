@@ -4,10 +4,11 @@ import duckdb
 import numpy as np
 import pandas as pd
 
+from openai import OpenAI
 from tdb.constraint import TDBConstraint
 from tdb.datatype import DataType, ImageDataset
 from tdb.query import NLQuery
-from tdb.repository import ModelRepository
+# from tdb.repository import ModelRepository
 from tdb.schema import NLColumn, NLDatabase, NLTable
 from tdb.nlfilter import GPTImageProcessor, GPTTextProcessor
 
@@ -16,7 +17,7 @@ class Console:
     def __init__(self):
         self.con = duckdb.connect(database=':memory:')
         self.table2cols = {}
-        self.repository = ModelRepository()
+        # self.repository = ModelRepository()
         self.nldb = NLDatabase('temp_db', self.con)
 
     def run(self):
@@ -44,6 +45,10 @@ class Console:
                 query = ""
     
     def alter_table(self, query):
+        """ Note: adding foreign key constraints currently needs
+            to happen after data has been inserted (to enable
+            creation of accurate count columns in dimension tables). 
+        """
         # Use regular expressions to parse ALTER TABLE ADD FOREIGN KEY statement
         alter_table_pattern = r'ALTER\s+TABLE\s+(\w+)\s+ADD\s+FOREIGN\s+KEY\s+\(([^)]+)\)\s+REFERENCES\s+(\w+)\s+\(([^)]+)\);'
         match = re.match(alter_table_pattern, query.strip(), re.IGNORECASE)
@@ -62,6 +67,18 @@ class Console:
         print(f"Referenced Columns: {referenced_columns}")
 
         self.nldb.add_relationships((referenced_table_name, referenced_columns, table_name, foreign_key_columns))
+        
+        # Add count column for the foreign key relationship.
+        self.nldb.tables[referenced_table_name].add(
+            NLColumn(f"{referenced_columns}_c", DataType.NUM))
+        self.con.execute(
+            f'ALTER TABLE {referenced_table_name} ' 
+            f'ADD COLUMN {referenced_columns}_c INTEGER')
+        self.con.execute(
+            f'UPDATE {referenced_table_name} SET {referenced_columns}_c = '
+            f'(SELECT COUNT(*) FROM {table_name} ' 
+            f'WHERE {table_name}.{foreign_key_columns} = {referenced_table_name}.{referenced_columns})'
+        )        
 
     def create_table(self, query):
         # Use regular expressions to parse CREATE TABLE statement
@@ -111,9 +128,8 @@ class Console:
         for name, data_type in self.table2cols[table_name]:
             file_paths = df[name]
             if data_type.upper() == 'IMAGE':
-                model, preprocess, t = self.repository.get_image_model()
-                dataset = ImageDataset(file_paths, t)
-                img_processor = GPTImageProcessor(dataset, model, preprocess, self.repository.device_id)
+                dataset = ImageDataset(file_paths)
+                img_processor = GPTImageProcessor(dataset, OpenAI())
                 table.add(NLColumn(name, DataType.IMG, img_processor))
                 df[name] = np.arange(len(df))
             elif data_type.upper() == 'AUDIO':
@@ -125,8 +141,7 @@ class Console:
                 # table.add(NLColumn(name, DataType.AUDIO, audio_processor))
                 # df[name] = np.arange(len(df))
             elif data_type.upper() == 'TEXT':
-                text_model = self.repository.get_text_model()
-                text_processor = GPTTextProcessor(df[name], text_model, self.repository.device)
+                text_processor = GPTTextProcessor(df[name], OpenAI())
                 table.add(NLColumn(name, DataType.TEXT))
                 table.add(NLColumn(name + "_u", DataType.NUM, text_processor))
                 df[name + "_u"] = np.arange(len(df))
@@ -143,8 +158,8 @@ class Console:
 # CREATE TABLE furniture(time INTEGER, neighborhood TEXT, title TEXT, url TEXT, price INTEGER, aid INTEGER);
 # CREATE TABLE images(img IMAGE, aid INTEGER);
 # ALTER TABLE images ADD FOREIGN KEY (aid) REFERENCES furniture (aid);
-# COPY furniture FROM 'craigslist/furnitures.csv' DELIMITER ',';
-# COPY images FROM 'craigslist/imgs.csv' DELIMITER ',';
+# COPY furniture FROM 'benchmarks/craigslist/furnitures.csv' DELIMITER ',';
+# COPY images FROM 'benchmarks/craigslist/imgs.csv' DELIMITER ',';
 # select max(price) from images, furniture where images.aid = furniture.aid and nl(img, 'wooden');
 if __name__ == "__main__":
     Console().run()
