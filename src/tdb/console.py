@@ -15,7 +15,8 @@ from tdb.nlfilter import GPTImageProcessor, GPTTextProcessor
 
 class Console:
     def __init__(self):
-        self.con = duckdb.connect(database=':memory:')
+        #self.con = duckdb.connect(database=':memory:')
+        self.con = duckdb.connect('elephants.db')
         self.table2cols = {}
         # self.repository = ModelRepository()
         self.nldb = NLDatabase('temp_db', self.con)
@@ -161,5 +162,9 @@ class Console:
 # COPY furniture FROM 'benchmarks/craigslist/furnitures.csv' DELIMITER ',';
 # COPY images FROM 'benchmarks/craigslist/imgs.csv' DELIMITER ',';
 # select max(price) from images, furniture where images.aid = furniture.aid and nl(img, 'wooden');
+
+# CREATE TABLE images(ImagePath image, Species text, City text, StationID text);
+# COPY images FROM '../MMBench-System/files/animals/data/image_data2.csv' DELIMITER ',';
+# select count(*) from images where NL(ImagePath, 'The image shows an elephant');
 if __name__ == "__main__":
     Console().run()

@@ -32,8 +32,10 @@ class NLQuery:
         join_conditions = []
         for fid, nl_filter in enumerate(nl_filters):
             lower, upper = thresholds[fid]
-            predicate_l = f"scores{fid}.score >= {upper}"
-            predicate_u = f"(scores{fid}.score IS NULL OR scores{fid}.score > {lower})"
+            # predicate_l = f"scores{fid}.score >= {upper}"
+            # predicate_u = f"(scores{fid}.score IS NULL OR scores{fid}.score > {lower})"
+            predicate_l = f"scores{fid}.score >= 1"
+            predicate_u = f"(scores{fid}.score IS NULL or scores{fid}.score > 0)"
             prev_str = self.arg_strs[fid]
             sql_l = sql_l.replace(prev_str, predicate_l)
             sql_u = sql_u.replace(prev_str, predicate_u)
@@ -45,12 +47,12 @@ class NLQuery:
         parsed_u = parse_one(sql_u).where(join_condition)
         for parsed in [parsed_l, parsed_u]:
             # Add scores tables to the FROM clause.
-            from_clause = parsed.args.get('joins')
-            if from_clause is None:
-                from_clause = exp.From(expressions=[])
-                parsed.set('from', from_clause)
+            join_clause = parsed.args.get('joins')
+            if join_clause is None:
+                join_clause = []
+                parsed.set('joins', join_clause)
             for table_name in scores_tables:
-                from_clause.append(
+                join_clause.append(
                     exp.Join(
                         this=exp.Table(
                             this=exp.Identifier(
@@ -87,12 +89,17 @@ class NLQueryInfo:
         # Limit info is already in self.query.
         assert len(query.parsed.selects) == 1
         agg = query.parsed.selects[0]
-        if agg.alias_or_name == '*':
+        agg_key = agg.key
+        if agg_key in ['count', 'max', 'min', 'sum']:
+            self.agg_func = agg_key
+            self.agg_col = agg.this.alias_or_name
+        elif agg_key == '*':
             self.agg_func = None
             self.agg_col = '*'
         else:
-            self.agg_func = agg.key
-            self.agg_col = agg.this.alias_or_name
+            raise ValueError(
+                f'Unsupported SELECT clause item: {agg_key}. ' 
+                'Supported: count, max, min, sum, *.')
         # Collect predicates.
         wheres = list(query.parsed.find_all(exp.Where))
         assert len(wheres) <= 1
@@ -109,10 +116,35 @@ class NLQueryInfo:
 
 
 if __name__ == "__main__":
-    sql = "select * from images, furniture, scores0 where images.aid = furniture.aid and nl(img, 'blue chair') and nl(title_u, 'good condition') limit 10"
+    #sql = "select * from images, furniture, scores0 where images.aid = furniture.aid and nl(img, 'blue chair') and nl(title_u, 'good condition') limit 10"
+    sql = 'select * from images'
     query = NLQuery(sql)
     parsed = parse_one(sql)
-    print(type(parsed))
-    print(parsed.to_s())
-    parsed_from = parsed.args.get('from')
-    print(parsed.__dict__)
+    agg = parsed.selects[0]
+    print(f'agg:{agg}')
+    print(f'agg.key:{agg.key}')
+    print(f'{agg.alias_or_name}')
+    print(f'{agg.this.alias_or_name}')
+    print(type(query.parsed.selects[0]))
+    #
+    # scores_tables = ['A',]
+    # join_clause = parsed.args.get('joins')
+    # if join_clause is None:
+    #     join_clause = []
+    #     parsed.set('joins', join_clause)
+    # for table_name in scores_tables:
+    #     join_clause.append(
+    #         exp.Join(
+    #             this=exp.Table(
+    #                 this=exp.Identifier(
+    #                     this=table_name,
+    #                     quoted=False))))
+    #
+    #
+    # print(type(parsed))
+    # print(parsed.to_s())
+    # print(parsed.sql())
+    # parsed_from = parsed.args.get('from')
+    # print(parsed.__dict__)
+    # query_info = NLQueryInfo(query, None)
+    # print(query_info.agg_func)

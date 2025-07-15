@@ -163,6 +163,8 @@ class CostOptimizer:
             return l, u
 
     def bounds_agg(self, cardi, query_info):
+        print('Aggregation Function:')
+        print(query_info.agg_func)
         if query_info.query.limit >= 0:
             l, u = CostOptimizer.bounds_count(cardi, query_info.query.limit)
         elif query_info.agg_func == 'count':

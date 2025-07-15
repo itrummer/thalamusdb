@@ -138,7 +138,9 @@ class CardinalityModel:
         return type(node) is exp.Anonymous and node.this.lower() == 'nl'
 
     def _get_fid(self, node):
-        nl_filter_sql_str = str(node).lower()
+        #nl_filter_sql_str = str(node).lower()
+        nl_filter_sql_str = str(node)
+        print(self.query.arg_strs)
         fid = self.query.arg_strs.index(nl_filter_sql_str)
         return fid
 
