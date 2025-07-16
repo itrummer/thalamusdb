@@ -1,4 +1,4 @@
-from tdb.datatype import DataType
+from tdb.data.datatype import DataType
 
 
 class NLColumnInfo:

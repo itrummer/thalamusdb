@@ -5,9 +5,9 @@ import pandas as pd
 import duckdb
 
 import tdb.config_tdb
-from tdb.datatype import ImageDataset, DataType
-from tdb.nlfilter import GPTImageProcessor, GPTTextProcessor
-from tdb.schema import NLDatabase, NLTable, NLColumn
+from tdb.data.datatype import ImageDataset, DataType
+from tdb.execution.nlfilter import GPTImageProcessor, GPTTextProcessor
+from tdb.data.schema import NLDatabase, NLTable, NLColumn
 from openai import OpenAI
 
 dfs = {}

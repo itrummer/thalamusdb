@@ -5,21 +5,22 @@ import numpy as np
 import pandas as pd
 
 from openai import OpenAI
-from tdb.constraint import TDBConstraint
-from tdb.datatype import DataType, ImageDataset
-from tdb.query import NLQuery
+from tdb.optimization.constraint import TDBConstraint
+from tdb.data.datatype import DataType, ImageDataset
+from tdb.execution.engine import ExecutionEngine
+from tdb.queries.query import NLQuery
 # from tdb.repository import ModelRepository
-from tdb.schema import NLColumn, NLDatabase, NLTable
-from tdb.nlfilter import GPTImageProcessor, GPTTextProcessor
+from tdb.data.schema import NLColumn, NLDatabase, NLTable
+from tdb.execution.nlfilter import GPTImageProcessor, GPTTextProcessor
 
 
 class Console:
     def __init__(self):
-        #self.con = duckdb.connect(database=':memory:')
-        self.con = duckdb.connect('elephants.db')
+        self.con = duckdb.connect(database=':memory:')
         self.table2cols = {}
         # self.repository = ModelRepository()
         self.nldb = NLDatabase('temp_db', self.con)
+        self.engine = ExecutionEngine(self.nldb, self.con)
 
     def run(self):
         query = ""
@@ -40,7 +41,7 @@ class Console:
                 elif query.strip().upper().startswith('SELECT '):
                     nl_query = NLQuery(query)
                     constraint = TDBConstraint('error', 0.1, 1)
-                    self.nldb.run(nl_query, constraint, optimizer_mode='local')
+                    self.engine.run(nl_query, constraint, optimizer_mode='local')
                 else:
                     print(f"Invalid query: {query}.")
                 query = ""

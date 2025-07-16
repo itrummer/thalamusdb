@@ -3,6 +3,15 @@ import re
 from sqlglot import parse_one, exp
 
 
+def is_aggregate(select_str):
+    agg_funcs = ['count', 'sum', 'avg', 'min', 'max']
+    return any(agg_func in select_str for agg_func in agg_funcs)
+
+
+def is_avg_aggregate(select_str):
+    return 'avg' in select_str
+
+
 class NLQuery:
     """Query object with support for natural language predicates on unstructured data.
 

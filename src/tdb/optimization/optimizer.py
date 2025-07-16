@@ -4,9 +4,8 @@ import math
 import random
 import time
 
-import tdb.config_tdb
-from tdb.cardinality import CardinalityModel
-from tdb.constraint import TDBMetric
+from tdb.optimization.cardinality import CardinalityModel
+from tdb.optimization.constraint import TDBMetric
 
 
 class CostOptimizer:

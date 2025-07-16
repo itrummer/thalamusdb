@@ -9,11 +9,11 @@ import altair as alt
 import streamlit as st
 import tdb.config_tdb
 
-from tdb.constraint import TDBConstraint
-from tdb.datatype import DataType
-from tdb.nldbs import get_nldb_by_name
-from tdb.optimizer import CostOptimizer
-from tdb.query import NLQuery, NLQueryInfo
+from tdb.optimization.constraint import TDBConstraint
+from tdb.data.datatype import DataType
+from tdb.data.nldbs import get_nldb_by_name
+from tdb.optimization.optimizer import CostOptimizer
+from tdb.queries.query import NLQuery, NLQueryInfo
 
 # If GUI, use GPTProcessor and corresponding lower and upper thresholds for NLFilter, and preprocess_nr_feedbacks.
 tdb.config_tdb.GUI = True
