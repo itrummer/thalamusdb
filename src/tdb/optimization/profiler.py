@@ -50,7 +50,7 @@ class Profiler:
         possible_orderings = [('uniform',)]
         for col_name in query.cols:
             possible_orderings.append(('min', col_name))
-            possible_orderings.append(('max', col_name))        
+            possible_orderings.append(('max', col_name))
         # Preprocess some data.
         fid2runtime = []
         for fid, nl_filter in enumerate(nl_filters):

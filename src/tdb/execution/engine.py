@@ -7,10 +7,12 @@ import math
 import random
 import time
 
+from tdb.data.relational import Database
+from tdb.operators.semantic_filter import UnaryFilter
 from tdb.optimization.constraint import TDBMetric
 from tdb.optimization.optimizer import CostOptimizer
 from tdb.optimization.profiler import Profiler
-from tdb.queries.query import NLQueryInfo, is_aggregate, is_avg_aggregate
+from tdb.queries.query_old import NLQueryInfo, is_aggregate, is_avg_aggregate
 
 
 class ExecutionEngine:
@@ -25,6 +27,86 @@ class ExecutionEngine:
         """
         self.nldb = nldb
         self.con = con
+        self.db = Database(nldb, con)
+    
+    def _bounds(self, query, semantic_filters):
+        """ Computes lower and upper bounds for the current query.
+        
+        Args:
+            query: Represents a query with semantic operators.
+            semantic_filters: List of semantic filters.
+        
+        Returns:
+            Tuple of lower and upper bounds.
+        """
+        # Initialize lower and upper bounds.
+        lbs = None
+        ubs = None
+        nr_operators = len(semantic_filters)
+        # Prepare all possible vectors of Booleans with nr_operators elements.
+        bounds = []
+        for i in range(2 ** nr_operators):
+            # Get default value for each semantic filter if unevaluated.
+            default_vals = [(i >> j) & 1 for j in range(nr_operators)]
+            # 
+    
+    def _result_with_defaults(self, query, semantic_filters, default_values):
+        """ Computes result with default values for semantic filters.
+        
+        Args:
+            query: Represents a query with semantic operators.
+            semantic_filters: List of semantic filters.
+            default_values: Default values for each semantic filter.
+        
+        Returns:
+            Query results when using default values for unevaluated rows.
+        """
+        pass
+    
+    def _create_operators(self, query):
+        """ Create semantic operators needed to execute query.
+        
+        Args:
+            query: Represents a query with semantic operators.
+        
+        Returns:
+            List of semantic operators.
+        """
+        semantic_operators = []
+        for predicate_id, predicate in enumerate(
+            query.semantic_predicates):
+            operator_id = f'Filter{predicate_id}'
+            semantic_filter = UnaryFilter(
+                self.db, operator_id,
+                predicate.table, 
+                predicate.column, 
+                predicate.condition)
+            semantic_operators.append(semantic_filter)
+        return semantic_operators
+
+    def _error(self):
+        """ Measures error for current execution state.
+        
+        Returns:
+            Error metric (numerical value).
+        """
+        pass
+
+    def run(self, query, constraint):
+        """ Run an SQL query with natural language components.
+        
+        Args:
+            query: Represents a query with semantic operators.
+            constraint: defines termination conditions.
+        
+        Returns:
+            dict: Information about the execution, including error and LUs.
+        """
+        semantic_operators = self._create_operators(query)
+        for operator in semantic_operators:
+            operator.prepare()
+        
+        # Initialize NL filters for each operator.
     
     def execute_sql(self, sql, result_info):
         start = time.time()
@@ -197,9 +279,9 @@ class ExecutionEngine:
                        'nr_actions': 0}
         yield from self.process(query, constraint, nl_filters, fid2runtime, result_info, start_time, ground_truths, optimizer_mode)
 
-    def run(self, query, constraint, ground_truths=None, optimizer_mode='local'):
-        info = next(self.run_yield(query, constraint, ground_truths, optimizer_mode))
-        return info
+    # def run(self, query, constraint, ground_truths=None, optimizer_mode='local'):
+    #     info = next(self.run_yield(query, constraint, ground_truths, optimizer_mode))
+    #     return info
 
     def query_to_compute_error(self, query, nl_filters, print_error=False, print_result=False, result_info=None):
         # Compute lower and upper bounds.

@@ -2,6 +2,7 @@ import base64
 import matplotlib.pyplot as plt
 import streamlit as st
 import tdb.config_tdb
+import tdb.globals as globals
 
 
 class SimilarityProcessor:
@@ -76,7 +77,8 @@ class GPTImageProcessor(SimilarityProcessor):
                 prompt = f'Does the following text describe the image? "{text}"\nAnswer 1 for Yes, 0 for No.\n'
                 base64_img = self.encode_image(idx)
                 response = self.model.chat.completions.create(
-                    model="gpt-4-turbo",
+                    #model="gpt-4-turbo",
+                    model="gpt-4o",
                     messages=[
                         {
                             "role": "user",
@@ -102,8 +104,15 @@ class GPTImageProcessor(SimilarityProcessor):
                     max_tokens=1,
                     logit_bias={15: 100, 16: 100},
                 )
-                print(response)
+                # print(response)
                 result = int(response.choices[0].message.content)
+                img_path = self.dataset.img_paths[idx]
+                print(f'Processed image {img_path} with result: {result}')
+                input_tokens = response.usage.prompt_tokens
+                output_tokens = response.usage.completion_tokens
+                globals.llm_calls += 1
+                globals.input_tokens += input_tokens
+                globals.output_tokens += output_tokens
                 idx_to_score[idx] = result
                 self.text2idx2result[text][idx] = result
         if tdb.config_tdb.GUI:

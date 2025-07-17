@@ -1,0 +1,52 @@
+'''
+Created on Jul 16, 2025
+
+@author: immanueltrummer
+'''
+from openai import OpenAI
+
+
+class SemanticOperator:
+    """ Base class for semantic operators. """
+    
+    def __init__(self, db, operator_ID):
+        """
+        Initializes the semantic operator with a unique identifier.
+        
+        The unique operator identifier is used to create a temporary
+        table in the database to store the results of the operator.
+        
+        Args:
+            db: Represents the source database.
+            operator_ID (str): Unique identifier for the operator.
+        """
+        self.db = db
+        self.operator_ID = operator_ID
+        self.nr_llm_calls = 0
+        self.nr_input_tokens = 0
+        self.nr_output_tokens = 0
+        self.nr_seconds = 0
+        self.llm = OpenAI()
+    
+    def execute(self, nr_rows, order):
+        """ Execute operator on a given number of ordered rows.
+        
+        Args:
+            nr_rows (int): Number of rows to process.
+            order (tuple): None or tuple with column name and "ascending" flag.            
+        """
+        raise NotImplementedError()
+    
+    def prepare(self):
+        """ Prepare for execution by creating the temporary table. """
+        raise NotImplementedError()
+    
+    def update_counters(self, llm_reply):
+        """ Update the counters for the operator.
+        
+        Args:
+            llm_reply: The reply from the LLM (currently only OpenAI).
+        """
+        self.nr_llm_calls += 1
+        self.nr_input_tokens += llm_reply.usage.prompt_tokens
+        self.nr_output_tokens += llm_reply.usage.completion_tokens

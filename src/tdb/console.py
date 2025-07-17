@@ -3,12 +3,14 @@ import re
 import duckdb
 import numpy as np
 import pandas as pd
+import tdb.globals as globals
+import time
 
 from openai import OpenAI
 from tdb.optimization.constraint import TDBConstraint
 from tdb.data.datatype import DataType, ImageDataset
 from tdb.execution.engine import ExecutionEngine
-from tdb.queries.query import NLQuery
+from tdb.queries.query import Query
 # from tdb.repository import ModelRepository
 from tdb.data.schema import NLColumn, NLDatabase, NLTable
 from tdb.execution.nlfilter import GPTImageProcessor, GPTTextProcessor
@@ -39,9 +41,15 @@ class Console:
                 elif query.strip().upper().startswith('ALTER TABLE '):
                     self.alter_table(query)
                 elif query.strip().upper().startswith('SELECT '):
-                    nl_query = NLQuery(query)
+                    start_s = time.time()
+                    nl_query = Query(query)
                     constraint = TDBConstraint('error', 0.1, 1)
-                    self.engine.run(nl_query, constraint, optimizer_mode='local')
+                    self.engine.run(nl_query, constraint)
+                    end_s = time.time()
+                    print(f'Query executed in {end_s - start_s:.2f} seconds.')
+                    print(f'#LLM Calls: {globals.llm_calls}')
+                    print(f'#Input Tokens: {globals.input_tokens}')
+                    print(f'#Output Tokens: {globals.output_tokens}')
                 else:
                     print(f"Invalid query: {query}.")
                 query = ""
