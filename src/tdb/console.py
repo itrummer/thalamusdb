@@ -35,14 +35,17 @@ class Console:
             if query.strip().endswith(';'):
                 query = ' '.join(query.split()).strip()
                 if query.strip().upper().startswith('CREATE TABLE '):
-                    self.create_table(query)
+                    self.engine.db.execute(query)
+                    # self.create_table(query)
                 elif query.strip().upper().startswith('COPY '):
-                    self.copy_csv(query)
+                    self.engine.db.execute(query)
+                    # self.copy_csv(query)
                 elif query.strip().upper().startswith('ALTER TABLE '):
-                    self.alter_table(query)
+                    self.engine.db.execute(query)
+                    # self.alter_table(query)
                 elif query.strip().upper().startswith('SELECT '):
                     start_s = time.time()
-                    nl_query = Query(query)
+                    nl_query = Query(self.engine.db, query)
                     constraint = TDBConstraint('error', 0.1, 1)
                     self.engine.run(nl_query, constraint)
                     end_s = time.time()
@@ -175,5 +178,10 @@ class Console:
 # CREATE TABLE images(ImagePath image, Species text, City text, StationID text);
 # COPY images FROM '../MMBench-System/files/animals/data/image_data2.csv' DELIMITER ',';
 # select count(*) from images where NL(ImagePath, 'The image shows an elephant');
+
+# CREATE TABLE images(ImagePath text, Species text, City text, StationID text);
+# COPY images FROM '../MMBench-System/files/animals/data/image_data2.csv' DELIMITER ',';
+# select count(*) from images where NL(ImagePath, 'The image shows an elephant');
+
 if __name__ == "__main__":
     Console().run()

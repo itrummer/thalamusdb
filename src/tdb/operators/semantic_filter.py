@@ -11,24 +11,20 @@ from tdb.operators.semantic_operator import SemanticOperator
 class UnaryFilter(SemanticOperator):
     """ Base class for unary filters specified in natural language. """
     
-    def __init__(
-            self, db, operator_ID, 
-            filtered_table, filtered_column, 
-            filter_condition):
+    def __init__(self, db, operator_ID, predicate):
         """
         Initializes the unary filter.
         
         Args:
             db: Database containing the filtered table.
             operator_ID (str): Unique identifier for the operator.
-            filtered_table (str): Name of the table to filter.
-            filtered_column (str): Name of the column to filter.
-            filter_condition (str): filter condition in natural language.
+            predicate: predicate expressed in natural language.
         """
         super().__init__(db, operator_ID)
-        self.filtered_table = filtered_table
-        self.filtered_column = filtered_column
-        self.filter_condition = filter_condition
+        self.filtered_table = predicate.table
+        self.filtered_column = predicate.column
+        self.filter_condition = predicate.condition
+        self.filter_sql = predicate.sql
         self.tmp_table = f'ThalamusDB_{self.operator_ID}'
     
     def _encode_item(self, item_text):
@@ -70,7 +66,8 @@ class UnaryFilter(SemanticOperator):
         item = self._encode_item(item_text)
         question = (
             'Does the following item satisfy the condition '
-            f'"{self.filter_condition}"?')
+            f'"{self.filter_condition}"? '
+            'Answer with 1 for yes, 0 for no.')
         message = {
             'role': 'user',
             'content': [
@@ -106,7 +103,8 @@ class UnaryFilter(SemanticOperator):
         order_sql = '' if order is None \
             else f'ORDER BY {order[0]} {"ASC" if order[1] else "DESC"}'
         sql = (
-            f'SELECT * FROM {self.filtered_table} '
+            f'SELECT base_{self.filtered_column} FROM {self.tmp_table} '
+            'WHERE result IS NULL '
             f'{order_sql} LIMIT {nr_rows}')
         rows = self.db.execute(sql)
         return [row[0] for row in rows]
@@ -124,22 +122,24 @@ class UnaryFilter(SemanticOperator):
             tmp_col_name = f'base_{col_name}'
             temp_schema_parts.append(f'{tmp_col_name} {col_type}')
         
-        temp_schema_definition = \
+        create_table_sql = \
             f'CREATE TEMPORARY TABLE {self.tmp_table}(' +\
             ', '.join(temp_schema_parts) + ')'
-        temp_src_data = \
+        self.db.execute(create_table_sql)
+        
+        fill_table_sql = \
+            f'INSERT INTO {self.tmp_table} ' +\
             'SELECT NULL, NULL, ' +\
-            ', '.join(c[0] for c in base_columns) +\
+            ', '.join(c[0] for c in base_columns) + ' ' +\
             'FROM ' + self.filtered_table
-        temp_sql = f'{temp_schema_definition} AS {temp_src_data}'
-        self.db.execute(temp_sql)
+        self.db.execute(fill_table_sql)
     
     def execute(self, nr_rows, order):
         """ Execute operator on a given number of ordered rows.
         
         Args:
             nr_rows (int): Number of rows to process.
-            order (tuple): None or tuple (column, ascending flag).           
+            order (tuple): None or tuple (column, ascending flag).
         """
         # Retrieve nr_rows in sort order from temporary table
         items_to_process = self._retrieve_items(nr_rows, order)
@@ -151,25 +151,5 @@ class UnaryFilter(SemanticOperator):
                 f'UPDATE {self.tmp_table} '
                 f'SET result = {result}, '
                 f'simulated = {result} '
-                f'WHERE base_{self.filtered_column} = {item_text}')
+                f"WHERE base_{self.filtered_column} = '{item_text}'")
             self.db.execute(update_sql)
-    
-    def pure_sql(self, null_as):
-        """ Transforms NL predicate into pure SQL.
-        
-        The SQL predicate refers to the temporary table
-        containing results for a subset of rows.
-        
-        Args:
-            null_as (str): default value to use for un-evaluated rows.
-        
-        Returns:
-            str: SQL predicate for the temporary table.
-        """
-        true_items_sql = \
-            f'select base_{self.filtered_column} ' \
-            f'from {self.tmp_table} ' \
-            f'where result = true'
-        if null_as == True:
-            true_items_sql += ' or results is NULL'
-        return f'{self.filtered_column} IN ({true_items_sql})'

@@ -37,7 +37,7 @@ class Query():
         ast = sqlglot.parse_one(sql)
         qualified_sql = qualify(ast, schema=schema)
         self.semantic_predicates = self._collect_predicates(qualified_sql)
-        self.qualitifed_query = qualified_sql.sql()
+        self.qualified_sql = qualified_sql.sql()
     
     def _collect_predicates(self, qualified_sql):
         """ Collects semantic filters from the query.
