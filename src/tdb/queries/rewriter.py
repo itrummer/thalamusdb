@@ -55,15 +55,17 @@ class QueryRewriter():
         Returns:
             str: SQL predicate for the temporary table.
         """
+        join_pred = join_op.pred
         true_items_sql = (
-            f'select left_{join_op.left_column}, '
-            f'right_{join_op.right_column} '
+            f'select left_{join_pred.left_column}, '
+            f'right_{join_pred.right_column} '
             f'from {join_op.tmp_table} '
             f'where result = true')
         if null_as == True:
             true_items_sql += ' or result is NULL'
         return (
-            f' ({join_op.left_column}, {join_op.right_column}) '
+            f' ({join_pred.left_alias}.{join_pred.left_column}, ' 
+            f'{join_pred.right_alias}.{join_pred.right_column}) '
             f' IN ({true_items_sql}) ')
     
     def pure_sql(self, op2default):
@@ -82,7 +84,7 @@ class QueryRewriter():
                 filter_pure_sql = self.filter2sql(op, default_value)
                 query = query.replace(filter_sem_sql, filter_pure_sql)
             elif isinstance(op, SemanticSimpleJoin):
-                join_sem_sql = op.join_sql
+                join_sem_sql = op.pred.sql
                 join_pure_sql = self.join2sql(op, default_value)
                 query = query.replace(join_sem_sql, join_pure_sql)
             else:

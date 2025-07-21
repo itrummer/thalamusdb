@@ -14,15 +14,18 @@ from tdb.queries.query import Query
 # from tdb.repository import ModelRepository
 from tdb.data.schema import NLColumn, NLDatabase, NLTable
 from tdb.execution.nlfilter import GPTImageProcessor, GPTTextProcessor
+from tdb.data.relational import Database
 
 
 class Console:
     def __init__(self):
-        self.con = duckdb.connect(database='detective.db')
-        self.table2cols = {}
+        # self.con = duckdb.connect(database='detective2.db')
+        
+        # self.table2cols = {}
         # self.repository = ModelRepository()
-        self.nldb = NLDatabase('temp_db', self.con)
-        self.engine = ExecutionEngine(self.nldb, self.con)
+        # self.nldb = NLDatabase('temp_db', self.con)
+        db = Database('detective3.db')
+        self.engine = ExecutionEngine(db)
 
     def run(self):
         query = ""
@@ -184,15 +187,18 @@ class Console:
 # select count(*) from images where NL(ImagePath, 'The image shows an elephant');
 
 # create table DMV(CarModel text, OwnerImage text, OwnerName text);
-# create table DMV(CarModel text, OwnerImage text, OwnerName text);
-# create table Evidence(CarDescription text, SuspectImage text, SuspectName text)
-# create table TrafficCams(Model text, CarImage text, CameraLocation text)
+# create table Evidence(CarDescription text, SuspectImage text, SuspectName text);
+# create table TrafficCams(Model text, CarImage text, CameraLocation text);
 # create table ShopCams(Person text, FaceImage text, CameraLocation text);
 # copy DMV from '/Users/immanueltrummer/git/MMBench-System/files/detective/data/dmv_table.csv' DELIMITER ',';
 # copy Evidence from '/Users/immanueltrummer/git/MMBench-System/files/detective/data/evidence_table.csv' DELIMITER ',';
 # copy TrafficCams from '/Users/immanueltrummer/git/MMBench-System/files/detective/data/traffic_cams_table.csv' DELIMITER ',';
 # copy ShopCams from '/Users/immanueltrummer/git/MMBench-System/files/detective/data/shop_cams_table.csv' DELIMITER ',';
 # select count(*) from Evidence, ShopCams where NLjoin(FaceImage, SuspectImage, 'The pictures show the same person');
+# select S.FaceImage, M.FaceImage from ShopCams S, ShopCams M where S.person = M.person and S.CameraLocation = 'Starbucks' and M.CameraLocation = 'McDonalds';
+# select count(*) from ShopCams S, ShopCams M where S.person = M.person and S.CameraLocation = 'Starbucks' and M.CameraLocation = 'McDonalds';
+# select count(*) from scams S, mcams M where NLjoin(S.FaceImage, M.FaceImage, 'The pictures show the same person');
+# select count(*) from ShopCams S, ShopCams M where NLjoin(S.FaceImage, M.FaceImage, 'the pictures show the same person') and S.CameraLocation = 'Starbucks' and M.CameraLocation = 'McDonalds';
 
 if __name__ == "__main__":
     Console().run()

@@ -13,16 +13,13 @@ from tdb.queries.rewriter import QueryRewriter
 class ExecutionEngine:
     """ Execution engine for processing SQL queries with NL predicates. """
 
-    def __init__(self, nldb, con):
+    def __init__(self, db):
         """ Initializes the execution engine with a database and connection.
         
         Args:
-            nldb: The natural language database to execute queries against.
-            con: The database connection object.
+            db: Relational database instance.
         """
-        self.nldb = nldb
-        self.con = con
-        self.db = Database(':memory')
+        self.db = db
     
     def _aggregate_results(self, results):
         """ Aggregate results obtained via different default values.

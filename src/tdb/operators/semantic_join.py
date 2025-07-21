@@ -24,12 +24,7 @@ class SemanticSimpleJoin(SemanticOperator):
             join_predicate: Join predicate expressed in natural language.
         """
         super().__init__(db, operator_ID)
-        self.left_table = join_predicate.left_table
-        self.right_table = join_predicate.right_table
-        self.left_column = join_predicate.left_column
-        self.right_column = join_predicate.right_column
-        self.join_condition = join_predicate.condition
-        self.join_sql = join_predicate.sql
+        self.pred = join_predicate
         self.tmp_table = f'ThalamusDB_{self.operator_ID}'
     
     def _get_join_candidates(self, nr_pairs, order):
@@ -42,8 +37,8 @@ class SemanticSimpleJoin(SemanticOperator):
         Returns:
             list: List of unprocessed row pairs from the left and right tables.
         """
-        left_key_col = f'left_{self.left_column}'
-        right_key_col = f'right_{self.right_column}'
+        left_key_col = f'left_{self.pred.left_column}'
+        right_key_col = f'right_{self.pred.right_column}'
         retrieval_sql = (
             f'SELECT {left_key_col}, {right_key_col} '
             f'FROM {self.tmp_table} '
@@ -67,7 +62,7 @@ class SemanticSimpleJoin(SemanticOperator):
             right_item = self._encode_item(right_key)
             question = (
                 'Do the following items satisfy the join condition '
-                f'"{self.join_condition}"? '
+                f'"{self.pred.condition}"? '
                 'Answer with 1 for yes, 0 for no.')
             message = {
                 'role': 'user',
@@ -103,8 +98,8 @@ class SemanticSimpleJoin(SemanticOperator):
             update_sql = (
                 f'UPDATE {self.tmp_table} '
                 f'SET result = False, simulated = False '
-                f"WHERE left_{self.left_column} = '{left_key}' "
-                f"AND right_{self.right_column} = '{right_key}';")
+                f"WHERE left_{self.pred.left_column} = '{left_key}' "
+                f"AND right_{self.pred.right_column} = '{right_key}';")
             self.db.execute(update_sql)
         
         # Find matching pairs of keys
@@ -115,14 +110,14 @@ class SemanticSimpleJoin(SemanticOperator):
             update_sql = (
                 f'UPDATE {self.tmp_table} '
                 f'SET result = TRUE, simulated = TRUE '
-                f"WHERE left_{self.left_column} = '{left_key}' "
-                f"AND right_{self.right_column} = '{right_key}';")
+                f"WHERE left_{self.pred.left_column} = '{left_key}' "
+                f"AND right_{self.pred.right_column} = '{right_key}';")
             self.db.execute(update_sql)
     
     def prepare(self):
         """ Prepare for execution by creating a temporary table. """
-        left_columns = self.db.columns(self.left_table)
-        right_columns = self.db.columns(self.right_table)
+        left_columns = self.db.columns(self.pred.left_table)
+        right_columns = self.db.columns(self.pred.right_table)
         temp_schema_parts = ['result BOOLEAN', 'simulated BOOLEAN']
         for col_name, col_type in left_columns:
             tmp_col_name = f'left_{col_name}'
@@ -137,16 +132,16 @@ class SemanticSimpleJoin(SemanticOperator):
         self.db.execute(create_table_sql)
         
         left_select_items = [
-            f'{self.left_table}.{col[0]} AS left_{col[0]}' \
+            f'L.{col[0]} AS left_{col[0]}' \
             for col in left_columns]
         right_select_items = [
-            f'{self.right_table}.{col[0]} AS right_{col[0]}' \
+            f'R.{col[0]} AS right_{col[0]}' \
             for col in right_columns]
         fill_table_sql = (
             f'INSERT INTO {self.tmp_table} '
             f'SELECT NULL AS result, NULL AS simulated, '
             + ', '.join(left_select_items) + ', '
             + ', '.join(right_select_items) + ' '
-            f'FROM {self.left_table}, {self.right_table} '
+            f'FROM {self.pred.left_table} L, {self.pred.right_table} R '
         )
         self.db.execute(fill_table_sql)

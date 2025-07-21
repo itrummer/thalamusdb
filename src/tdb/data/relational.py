@@ -9,7 +9,7 @@ import duckdb
 class Database():
     """ Represents a relational database (DuckDB). """
     
-    def __init__(self, database_name=':memory:'):
+    def __init__(self, database_name):
         """
         Initializes the database connection.
 
