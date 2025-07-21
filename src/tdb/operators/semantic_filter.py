@@ -3,8 +3,6 @@ Created on Jul 16, 2025
 
 @author: immanueltrummer
 '''
-import base64
-
 from tdb.operators.semantic_operator import SemanticOperator
 
 
@@ -26,33 +24,6 @@ class UnaryFilter(SemanticOperator):
         self.filter_condition = predicate.condition
         self.filter_sql = predicate.sql
         self.tmp_table = f'ThalamusDB_{self.operator_ID}'
-    
-    def _encode_item(self, item_text):
-        """ Encodes an item as message for LLM processing.
-        
-        Args:
-            item_text (str): Text of the item to encode, can be a path.
-        
-        Returns:
-            dict: Encoded item as a dictionary with 'role' and 'content'.
-        """
-        if item_text.endswith('.jpeg'):
-            with open(item_text, 'rb') as image_file:
-                image = base64.b64encode(
-                    image_file.read()).decode('utf-8')
-                
-            return {
-                'type': 'image_url',
-                'image_url': {
-                    'url': f'data:image/jpeg;base64,{image}',
-                    'detail': 'low'
-                    }
-                }
-        else:
-            return {
-                'type': 'text',
-                'text': item_text
-            }
     
     def _evaluate_predicate(self, item_text):
         """ Evaluates the filter condition using the LLM.

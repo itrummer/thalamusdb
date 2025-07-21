@@ -18,7 +18,7 @@ from tdb.execution.nlfilter import GPTImageProcessor, GPTTextProcessor
 
 class Console:
     def __init__(self):
-        self.con = duckdb.connect(database=':memory:')
+        self.con = duckdb.connect(database='detective.db')
         self.table2cols = {}
         # self.repository = ModelRepository()
         self.nldb = NLDatabase('temp_db', self.con)
@@ -182,6 +182,17 @@ class Console:
 # CREATE TABLE images(ImagePath text, Species text, City text, StationID text);
 # COPY images FROM '../MMBench-System/files/animals/data/image_data2.csv' DELIMITER ',';
 # select count(*) from images where NL(ImagePath, 'The image shows an elephant');
+
+# create table DMV(CarModel text, OwnerImage text, OwnerName text);
+# create table DMV(CarModel text, OwnerImage text, OwnerName text);
+# create table Evidence(CarDescription text, SuspectImage text, SuspectName text)
+# create table TrafficCams(Model text, CarImage text, CameraLocation text)
+# create table ShopCams(Person text, FaceImage text, CameraLocation text);
+# copy DMV from '/Users/immanueltrummer/git/MMBench-System/files/detective/data/dmv_table.csv' DELIMITER ',';
+# copy Evidence from '/Users/immanueltrummer/git/MMBench-System/files/detective/data/evidence_table.csv' DELIMITER ',';
+# copy TrafficCams from '/Users/immanueltrummer/git/MMBench-System/files/detective/data/traffic_cams_table.csv' DELIMITER ',';
+# copy ShopCams from '/Users/immanueltrummer/git/MMBench-System/files/detective/data/shop_cams_table.csv' DELIMITER ',';
+# select count(*) from Evidence, ShopCams where NLjoin(FaceImage, SuspectImage, 'The pictures show the same person');
 
 if __name__ == "__main__":
     Console().run()

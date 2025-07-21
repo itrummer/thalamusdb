@@ -5,6 +5,8 @@ Created on Jul 16, 2025
 '''
 from tdb.data.relational import Database
 from tdb.operators.semantic_filter import UnaryFilter
+from tdb.operators.semantic_join import SemanticSimpleJoin
+from tdb.queries.query import JoinPredicate, UnaryPredicate
 from tdb.queries.rewriter import QueryRewriter
 
 
@@ -103,10 +105,23 @@ class ExecutionEngine:
         semantic_operators = []
         for predicate_id, predicate in enumerate(
             query.semantic_predicates):
-            operator_id = f'Filter{predicate_id}'
-            semantic_filter = UnaryFilter(
-                self.db, operator_id, predicate)
-            semantic_operators.append(semantic_filter)
+            if isinstance(predicate, UnaryPredicate):
+                # Create a unary filter operator
+                operator_id = f'UnaryFilter{predicate_id}'
+                semantic_filter = UnaryFilter(
+                    self.db, operator_id, predicate)
+                semantic_operators.append(semantic_filter)
+            
+            elif isinstance(predicate, JoinPredicate):
+                # Create a semantic join operator
+                operator_id = f'Join{predicate_id}'
+                semantic_join = SemanticSimpleJoin(
+                    self.db, operator_id, predicate)
+                semantic_operators.append(semantic_join)
+            else:
+                raise ValueError(
+                    f'Unknown predicate type: {type(predicate)}')
+
         return semantic_operators
 
     def _bounds2error(self, bounds):
