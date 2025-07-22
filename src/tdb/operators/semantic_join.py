@@ -5,22 +5,25 @@ Created on Jul 20, 2025
 '''
 import traceback
 
+from sqlglot import exp
 from tdb.operators.semantic_operator import SemanticOperator
 
 
 class SemanticJoin(SemanticOperator):
     """ Represents a semantic join operator in a query. """
     
-    def __init__(self, db, operator_ID, join_predicate):
+    def __init__(self, db, operator_ID, query, join_predicate):
         """
         Initializes the semantic join operator.
         
         Args:
             db: Database containing the joined tables.
             operator_ID (str): Unique identifier for the operator.
+            query: Query containing the join predicate.
             join_predicate: Join predicate expressed in natural language.
         """
         super().__init__(db, operator_ID)
+        self.query = query
         self.pred = join_predicate
         self.tmp_table = f'ThalamusDB_{self.operator_ID}'
     
@@ -102,19 +105,29 @@ class SemanticJoin(SemanticOperator):
             f'CREATE TEMPORARY TABLE {self.tmp_table} (' +\
             ', '.join(temp_schema_parts) + ');'
         self.db.execute(create_table_sql)
-        
+
+        left_alias = self.pred.left_alias
+        right_alias = self.pred.right_alias        
         left_select_items = [
-            f'L.{col[0]} AS left_{col[0]}' \
+            f'{left_alias}.{col[0]} AS left_{col[0]}' \
             for col in left_columns]
         right_select_items = [
-            f'R.{col[0]} AS right_{col[0]}' \
+            f'{right_alias}.{col[0]} AS right_{col[0]}' \
             for col in right_columns]
+        other_filters_left = self.query.alias2unary_sql[left_alias]
+        other_filters_right = self.query.alias2unary_sql[right_alias]
+        other_filters = exp.And(
+            this=other_filters_left,
+            expression=other_filters_right)
+        where_sql = 'WHERE ' + other_filters.sql()
         fill_table_sql = (
             f'INSERT INTO {self.tmp_table} '
             f'SELECT NULL AS result, NULL AS simulated, '
             + ', '.join(left_select_items) + ', '
             + ', '.join(right_select_items) + ' '
-            f'FROM {self.pred.left_table} L, {self.pred.right_table} R '
+            f'FROM {self.pred.left_table} {left_alias}, '
+            f'{self.pred.right_table} {right_alias} '
+            ' ' + where_sql + ';'
         )
         self.db.execute(fill_table_sql)
 

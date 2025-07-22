@@ -105,14 +105,14 @@ class ExecutionEngine:
                 # Create a unary filter operator
                 operator_id = f'UnaryFilter{predicate_id}'
                 semantic_filter = UnaryFilter(
-                    self.db, operator_id, predicate)
+                    self.db, operator_id, query, predicate)
                 semantic_operators.append(semantic_filter)
             
             elif isinstance(predicate, JoinPredicate):
                 # Create a semantic join operator
                 operator_id = f'Join{predicate_id}'
                 semantic_join = BatchJoin(
-                    self.db, operator_id, predicate)
+                    self.db, operator_id, query, predicate)
                 semantic_operators.append(semantic_join)
             else:
                 raise ValueError(

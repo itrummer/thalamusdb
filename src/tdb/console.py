@@ -24,8 +24,10 @@ if __name__ == "__main__":
     cmd = ''
     while not (cmd.lower() == '\\q'):
         cmd = input('Enter query (or "\\q" to quit): ')
-        query = Query(db, cmd)
+        if cmd.lower() == '\\q':
+            break
         
+        query = Query(db, cmd)
         if query.semantic_predicates:
             engine.run(query, None)
         else:

@@ -9,17 +9,20 @@ from tdb.operators.semantic_operator import SemanticOperator
 class UnaryFilter(SemanticOperator):
     """ Base class for unary filters specified in natural language. """
     
-    def __init__(self, db, operator_ID, predicate):
+    def __init__(self, db, operator_ID, query, predicate):
         """
         Initializes the unary filter.
         
         Args:
             db: Database containing the filtered table.
             operator_ID (str): Unique identifier for the operator.
+            query: Query containing the predicate.
             predicate: predicate expressed in natural language.
         """
         super().__init__(db, operator_ID)
+        self.query = query
         self.filtered_table = predicate.table
+        self.filtered_alias = predicate.alias
         self.filtered_column = predicate.column
         self.filter_condition = predicate.condition
         self.filter_sql = predicate.sql
@@ -98,11 +101,15 @@ class UnaryFilter(SemanticOperator):
             ', '.join(temp_schema_parts) + ')'
         self.db.execute(create_table_sql)
         
+        # Use pure SQL predicates for pruning, if available
+        other_filters = self.query.alias2unary_sql[self.filtered_alias]
+        where_sql = f'WHERE {other_filters.sql()}'
         fill_table_sql = \
             f'INSERT INTO {self.tmp_table} ' +\
             'SELECT NULL, NULL, ' +\
             ', '.join(c[0] for c in base_columns) + ' ' +\
-            'FROM ' + self.filtered_table
+            'FROM ' + self.filtered_table + ' ' +\
+            where_sql
         self.db.execute(fill_table_sql)
     
     def execute(self, nr_rows, order):
