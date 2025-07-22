@@ -3,6 +3,7 @@ Created on Jul 16, 2025
 
 @author: immanueltrummer
 '''
+from tdb.execution.results import AggregateResults, RetrievalResults
 from tdb.operators.semantic_filter import UnaryFilter
 from tdb.operators.semantic_join import BatchJoin
 from tdb.queries.query import JoinPredicate, UnaryPredicate
@@ -19,75 +20,6 @@ class ExecutionEngine:
             db: Relational database instance.
         """
         self.db = db
-    
-    def _aggregate_results(self, results):
-        """ Aggregate results obtained via different default values.
-        
-        Args:
-            results: List of results obtained from different default values.
-        
-        Returns:
-            Tuple of lower and upper bounds for the results.
-        """
-        assert len(results) > 0, 'No results to aggregate!'
-        # Calculate lower and upper bounds for each aggregate
-        nr_aggregates = len(results[0])
-        lower_bounds = [float('inf')] * nr_aggregates
-        upper_bounds = [float('-inf')] * nr_aggregates
-        for result in results:
-            print(f'Result: {result}')
-            first_row = result[0]
-            for i, value in enumerate(first_row):
-                if value < lower_bounds[i]:
-                    lower_bounds[i] = value
-                if value > upper_bounds[i]:
-                    upper_bounds[i] = value
-        
-        return lower_bounds, upper_bounds
-    
-    def _result_bounds(self, query, semantic_filters):
-        """ Computes lower and upper bounds for the query result.
-        
-        Args:
-            query: Represents a query with semantic operators.
-            semantic_filters: List of semantic filters.
-        
-        Returns:
-            Tuple of lower and upper bounds.
-        """
-        # Try all combinations of default values
-        results = []
-        nr_operators = len(semantic_filters)
-        for i in range(2 ** nr_operators):
-            # Get default value for each semantic filter
-            default_vals = [(i >> j) & 1 for j in range(nr_operators)]
-            # Compute result with default values
-            result = self._result_with_defaults(
-                query, semantic_filters, default_vals)
-            # Add result to set of results
-            results.append(result)
-        
-        return self._aggregate_results(results)
-    
-    def _result_with_defaults(self, query, semantic_filters, default_values):
-        """ Computes result with default values for semantic filters.
-        
-        Args:
-            query: Represents a query with semantic operators.
-            semantic_filters: List of semantic filters.
-            default_values: List of default values for each filter.
-        
-        Returns:
-            Query results when using default values for unevaluated rows.
-        """
-        rewriter = QueryRewriter(self.db, query)
-        op2default = {}
-        for op, default_val in zip(semantic_filters, default_values):
-            op2default[op] = default_val
-        
-        rewritten_query = rewriter.pure_sql(op2default)
-        result = self.db.execute(rewritten_query)
-        return result
     
     def _create_operators(self, query):
         """ Create semantic operators needed to execute query.
@@ -119,21 +51,78 @@ class ExecutionEngine:
                     f'Unknown predicate type: {type(predicate)}')
 
         return semantic_operators
-
-    def _bounds2error(self, bounds):
-        """ Measures error for current bounds.
+    
+    def _is_agg_results(self, results):
+        """ Checks if results are consistent with aggregation query.
+        
+        Specifically, the method checks if all results contain
+        one single row and if each cell in each result is of
+        numerical type.
         
         Args:
-            bounds: Tuple of lower and upper bounds for the query result.
+            results: List of query results.
         
         Returns:
-            Error metric (numerical value).
+            bool: True if results are consistent with aggregation query.
         """
-        assert all(lb <= ub for lb, ub in zip(bounds[0], bounds[1])), \
-            'Lower bounds must be less than or equal to upper bounds!'
-        # Compute error as the sum of absolute differences
-        error = sum(abs(lb - ub) for lb, ub in zip(bounds[0], bounds[1]))
-        return error
+        # Check if all results have one row
+        if any(len(result) != 1 for result in results):
+            return False
+        
+        # Check if all cells in the results are numerical
+        for result in results:
+            for cell in result[0]:
+                if not isinstance(cell, (int, float)):
+                    return False
+        
+        return True
+    
+    def _results(self, query, semantic_filters):
+        """ Computes multiple possible query results.
+        
+        This method tries all combinations of default values for
+        semantic filters and computes the corresponding results.
+        
+        Args:
+            query: Represents a query with semantic operators.
+            semantic_filters: List of semantic filters.
+        
+        Returns:
+            List of possible results, obtained with different default values.
+        """
+        # Try all combinations of default values
+        results = []
+        nr_operators = len(semantic_filters)
+        for i in range(2 ** nr_operators):
+            # Get default value for each semantic filter
+            default_vals = [(i >> j) & 1 for j in range(nr_operators)]
+            # Compute result with default values
+            result = self._result_with_defaults(
+                query, semantic_filters, default_vals)
+            # Add result to set of results
+            results.append(result)
+        
+        return results
+    
+    def _result_with_defaults(self, query, semantic_filters, default_values):
+        """ Computes result with default values for semantic filters.
+        
+        Args:
+            query: Represents a query with semantic operators.
+            semantic_filters: List of semantic filters.
+            default_values: List of default values for each filter.
+        
+        Returns:
+            Query results when using default values for unevaluated rows.
+        """
+        rewriter = QueryRewriter(self.db, query)
+        op2default = {}
+        for op, default_val in zip(semantic_filters, default_values):
+            op2default[op] = default_val
+        
+        rewritten_query = rewriter.pure_sql(op2default)
+        result = self.db.execute(rewritten_query)
+        return result
 
     def run(self, query, constraint):
         """ Run an SQL query with natural language components.
@@ -156,6 +145,13 @@ class ExecutionEngine:
             for op in semantic_operators:
                 op.execute(10, None)
             
-            bounds = self._result_bounds(query, semantic_operators)
-            print(bounds)
-            error = self._bounds2error(bounds)
+            results = self._results(query, semantic_operators)
+            
+            if self._is_agg_results(results):
+                aggregate_results = AggregateResults(results)
+            else:
+                aggregate_results = RetrievalResults(results)
+            
+            aggregate_results.output()
+            error = aggregate_results.error()
+            print(f'Error: {error}')

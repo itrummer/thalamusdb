@@ -97,7 +97,7 @@ class UnaryFilter(SemanticOperator):
             temp_schema_parts.append(f'{tmp_col_name} {col_type}')
         
         create_table_sql = \
-            f'CREATE TEMPORARY TABLE {self.tmp_table}(' +\
+            f'CREATE OR REPLACE TEMPORARY TABLE {self.tmp_table}(' +\
             ', '.join(temp_schema_parts) + ')'
         self.db.execute(create_table_sql)
         

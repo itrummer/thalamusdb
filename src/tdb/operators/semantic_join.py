@@ -102,7 +102,7 @@ class SemanticJoin(SemanticOperator):
             temp_schema_parts.append(f'{tmp_col_name} {col_type}')
         
         create_table_sql = \
-            f'CREATE TEMPORARY TABLE {self.tmp_table} (' +\
+            f'CREATE OR REPLACE TEMPORARY TABLE {self.tmp_table} (' +\
             ', '.join(temp_schema_parts) + ');'
         self.db.execute(create_table_sql)
 
@@ -287,6 +287,7 @@ class BatchJoin(SemanticJoin):
             temperature=0.0,
             stop=['.']
         )
+        self.update_counters(response)
         matching_keys = []
         try:
             matching_keys = self._extract_matches(
