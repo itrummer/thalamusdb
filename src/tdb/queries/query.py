@@ -62,12 +62,16 @@ class Query():
         qualified_exp = qualify(ast, schema=schema)
         scope = Scope(qualified_exp)
         alias2table = self._alias2table(scope)
-        semantic_predicates = self._collect_predicates(
+        semantic_predicates = \
+            self._collect_semantic_predicates(
             qualified_exp, alias2table)
         
         self.qualified_sql = qualified_exp.sql()
         self.scope = Scope(qualified_exp)
-        self.alias2table = alias2table        
+        self.alias2table = alias2table
+        aliases = alias2table.keys()
+        self.alias2unary_sql = self._collect_unary_sql_predicates(
+            qualified_exp, aliases)
         self.semantic_predicates = semantic_predicates
     
     def _alias2table(self, scope):
@@ -84,8 +88,28 @@ class Query():
             alias = table.alias
             alias2table[alias] = table.name
         return alias2table
-    
-    def _collect_predicates(self, qualified_sql, alias2table):
+
+    def _collect_conjuncts_rec(self, conjunction_ast):
+        """ Recursively collects conjuncts from the AST.
+        
+        Args:
+            conjunction_ast: SQL expression to analyze.
+        
+        Returns:
+            List of conjuncts as expressions.
+        """
+        conjuncts = []
+        if isinstance(conjunction_ast, exp.And):
+            left_input = conjunction_ast.this
+            right_input = conjunction_ast.expression
+            conjuncts.extend(self._collect_conjuncts_rec(left_input))
+            conjuncts.extend(self._collect_conjuncts_rec(right_input))
+        else:
+            conjuncts.append(conjunction_ast)
+        
+        return conjuncts
+
+    def _collect_semantic_predicates(self, qualified_sql, alias2table):
         """ Collects semantic filters from the query.
         
         Args:
@@ -128,7 +152,70 @@ class Query():
                 predicates.append(predicate)
         
         return predicates
-
+    
+    def _collect_unary_sql_predicates(self, qualified_sql, aliases):
+        """ Collects unary predicates (pure SQL) from the query.
+        
+        Args:
+            qualified_sql (exp.Expression): fully qualified SQL query.
+            aliases: List of table aliases in root query scope.
+        
+        Returns:
+            Dictionary mapping table aliases to unary SQL predicates.
+        """
+        alias2preds = {
+            alias : exp.Boolean(this=True) \
+            for alias in aliases
+            }
+        where_clause = qualified_sql.args.get('where')
+        if where_clause is not None:
+            where_content = where_clause.this
+            conjuncts = self._collect_conjuncts_rec(
+                where_content)
+            for conjunct in conjuncts:
+                alias = self._get_unary_alias(conjunct)
+                if alias is not None and alias in aliases:
+                    prior_pred = alias2preds[alias]
+                    new_pred = exp.And(
+                        this=prior_pred, 
+                        expression=conjunct)
+                    alias2preds[alias] = new_pred
+        
+        return alias2preds
+    
+    def _get_unary_alias(self, expression):
+        """ Return associated alias if this is a unary predicate.
+        
+        Args:
+            expression (exp.Expression): SQL expression to check.
+        
+        Returns:
+            Table alias or None.
+        """
+        if isinstance(expression, exp.Binary):
+            left_input = expression.this
+            right_input = expression.expression
+            if isinstance(left_input, exp.Column) and \
+                  isinstance(right_input, exp.Literal):
+                return left_input.table
+            elif isinstance(left_input, exp.Literal) and \
+                  isinstance(right_input, exp.Column):
+                return right_input.table
+            elif isinstance(left_input, exp.Column) and \
+                isinstance(right_input, exp.Column):
+                left_table = left_input.table
+                right_table = right_input.table
+                if (left_table == right_table):
+                    return left_table
+                
+        elif isinstance(expression, exp.Unary):
+            referenced_cols = expression.find_all(exp.Column)
+            if len(referenced_cols) == 1:
+                referenced_col = referenced_cols[0]
+                alias = referenced_col.table
+                return alias
+        
+        return None
 
 if __name__ == "__main__":
     from tdb.data.relational import Database
@@ -136,5 +223,7 @@ if __name__ == "__main__":
     # query = Query(db, "SELECT NLfilter(ImagePath, 'Is it an elephant?') FROM images")
     db = Database('detective3.db')
     # query = Query(db, "SELECT NLfilter(ImagePath, 'Is it an elephant?') FROM images"
-    query = Query(db, "select S.FaceImage, M.FaceImage from ShopCams S, ShopCams M, TrafficCams where NLjoin(S.faceimage, M.faceimage, 'The pictures show the same person') and S.CameraLocation = 'Starbucks' and M.CameraLocation = 'McDonalds' and EXISTS (select * from shopcams as SC);")
+    query = Query(db, "select S.FaceImage, M.FaceImage from ShopCams S, ShopCams M, TrafficCams where NLjoin(S.faceimage, M.faceimage, 'The pictures show the same person') and S.CameraLocation = 'Starbucks' and M.CameraLocation = 'McDonalds' and EXISTS (select * from shopcams as SC) and S.CameraLocation = 'test' and S.CameraLocation = S.FaceImage;")
+    print(query.qualified_sql)
     print(query.semantic_predicates)
+    print(query.alias2unary_sql)
