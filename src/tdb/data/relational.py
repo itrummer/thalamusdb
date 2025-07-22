@@ -42,7 +42,7 @@ class Database():
         Returns:
             Result of the query execution.
         """
-        print(f'Executing: {query}')
+        # print(f'Executing: {query}')
         return self.con.execute(query).fetchall()
     
     def schema(self):

@@ -4,7 +4,7 @@ Created on Jul 18, 2025
 @author: immanueltrummer
 '''
 from tdb.operators.semantic_filter import UnaryFilter
-from tdb.operators.semantic_join import SemanticSimpleJoin
+from tdb.operators.semantic_join import SemanticJoin
 
 
 class QueryRewriter():
@@ -83,7 +83,7 @@ class QueryRewriter():
                 filter_sem_sql = op.filter_sql
                 filter_pure_sql = self.filter2sql(op, default_value)
                 query = query.replace(filter_sem_sql, filter_pure_sql)
-            elif isinstance(op, SemanticSimpleJoin):
+            elif isinstance(op, SemanticJoin):
                 join_sem_sql = op.pred.sql
                 join_pure_sql = self.join2sql(op, default_value)
                 query = query.replace(join_sem_sql, join_pure_sql)

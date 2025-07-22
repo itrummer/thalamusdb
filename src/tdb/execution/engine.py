@@ -3,9 +3,8 @@ Created on Jul 16, 2025
 
 @author: immanueltrummer
 '''
-from tdb.data.relational import Database
 from tdb.operators.semantic_filter import UnaryFilter
-from tdb.operators.semantic_join import SemanticSimpleJoin
+from tdb.operators.semantic_join import BatchJoin
 from tdb.queries.query import JoinPredicate, UnaryPredicate
 from tdb.queries.rewriter import QueryRewriter
 
@@ -112,7 +111,7 @@ class ExecutionEngine:
             elif isinstance(predicate, JoinPredicate):
                 # Create a semantic join operator
                 operator_id = f'Join{predicate_id}'
-                semantic_join = SemanticSimpleJoin(
+                semantic_join = BatchJoin(
                     self.db, operator_id, predicate)
                 semantic_operators.append(semantic_join)
             else:

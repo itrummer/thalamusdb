@@ -39,7 +39,10 @@ class SemanticOperator:
         Returns:
             dict: Encoded item as a dictionary with 'role' and 'content'.
         """
-        if item_text.endswith('.jpeg'):
+        image_extensions = ['.png', '.jpg', '.jpeg']
+        if any(
+            item_text.endswith(extension) \
+            for extension in image_extensions):
             with open(item_text, 'rb') as image_file:
                 image = base64.b64encode(
                     image_file.read()).decode('utf-8')
