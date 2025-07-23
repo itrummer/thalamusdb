@@ -17,5 +17,20 @@ class TdbCounters:
     """ Number of input tokens in the LLM calls. """
     output_tokens: int = 0
     """ Number of output tokens in the LLM calls. """
-    execution_time: int = 0
-    """ Total execution time in seconds. """
+    
+    def __add__(self, other_counter):
+        """ Adds values for each counter.
+        
+        Args:
+            other_counter: another TdbCounters instance to add.
+        
+        Returns:
+            A new TdbCounters instance with summed values.
+        """
+        assert isinstance(other_counter, TdbCounters), \
+            'Can only add TdbCounters instances!'
+        return TdbCounters(
+            LLM_calls=self.LLM_calls + other_counter.LLM_calls,
+            input_tokens=self.input_tokens + other_counter.input_tokens,
+            output_tokens=self.output_tokens + other_counter.output_tokens
+        )

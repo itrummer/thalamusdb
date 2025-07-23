@@ -33,6 +33,15 @@ class PossibleResults():
         """ Output aggregate information about possible results. """
         raise NotImplementedError(
             'Use sub-classes for specific types of results!')
+    
+    def result(self):
+        """ Aggregate all possible results into one likely result.
+        
+        Returns:
+            One result representing our best guess.
+        """
+        raise NotImplementedError(
+            'Use sub-classes for specific types of results!')
 
 
 class AggregateResults(PossibleResults):
@@ -95,6 +104,16 @@ class AggregateResults(PossibleResults):
         """ Outputs lower and upper bounds on query result. """
         print('Lower Bounds:', self.lower_bounds)
         print('Upper Bounds:', self.upper_bounds)
+    
+    def result(self):
+        """ Take the average between lower and upper bounds.
+        
+        Returns:
+            A list with our best guess value for each query aggregate.
+        """
+        lb_ub_zip = list(zip(self.lower_bounds, self.upper_bounds))
+        avgs = [(lb + ub) / 2 for lb, ub in lb_ub_zip]
+        return avgs
 
 
 class RetrievalResults(PossibleResults):
@@ -145,14 +164,24 @@ class RetrievalResults(PossibleResults):
             return 0.0
         max_rows = max(len(result) for result in self.results)
         intersection_rows = len(self.intersection)
-        if max_rows == 0:
+        if max_rows == intersection_rows:
             return 0.0
-        error = (max_rows - intersection_rows) / max_rows
+        if intersection_rows == 0:
+            return float('inf')
+        error = (max_rows - intersection_rows) / intersection_rows - 1
         return error
     
     def output(self):
         """ Outputs the intersection of all retrieval results. """
-        print('Intersection of Results:')
+        print('Rows that Appear in Each Possible Result:')
         for result in self.intersection:
             print(result)
         print(f'Total #certain rows: {len(self.intersection)}')
+    
+    def result(self):
+        """ Use the intersection as our best guess result.
+        
+        Returns:
+            Rows that appear in all possible results.
+        """
+        return self.intersection

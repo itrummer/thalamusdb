@@ -4,6 +4,7 @@ Created on Jul 22, 2025
 @author: immanueltrummer
 '''
 import argparse
+import time
 
 from tdb.data.relational import Database
 from tdb.execution.engine import ExecutionEngine
@@ -29,8 +30,14 @@ if __name__ == "__main__":
         
         query = Query(db, cmd)
         if query.semantic_predicates:
-            engine.run(query, None)
+            start_time = time.time()
+            result, costs = engine.run(query, None)
+            total_time = time.time() - start_time
+            print(f'Query executed in {total_time:.2f} seconds.')
+            print(f'Execution costs: {costs}')
+            print(f'Result: {result}')
         else:
-            db.execute(cmd)
+            result = db.execute(cmd)
+            print(result)
     
     print('Execution finished. Exiting console.')

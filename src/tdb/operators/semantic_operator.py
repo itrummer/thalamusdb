@@ -27,7 +27,6 @@ class SemanticOperator:
         self.nr_llm_calls = 0
         self.nr_input_tokens = 0
         self.nr_output_tokens = 0
-        self.nr_seconds = 0
         self.llm = OpenAI()
 
     def _encode_item(self, item_text):

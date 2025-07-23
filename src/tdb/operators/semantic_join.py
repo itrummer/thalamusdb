@@ -196,9 +196,9 @@ class BatchJoin(SemanticJoin):
         """
         task = (
             'Identify pairs of items from the left and right tables '
-            f'that satisfy the join condition "{self.pred.condition}".'
+            f'that satisfy the join condition "{self.pred.condition}". '
             'Write only the IDs of matching pairs (e.g., "L3-R5), '
-            'separated by commas. Write "." after the last pair.'
+            'separated by commas. Write "." after the last pair. '
             'Sample output: "L3-R5,L4-R2,L1-R1." The output may be empty.'
             )
         content = [task]
@@ -229,7 +229,7 @@ class BatchJoin(SemanticJoin):
             list: List of matching keys (tuples).
         """
         content = llm_response.choices[0].message.content
-        print(content)
+        # print(content)
         matching_keys = []
         pairs_str = content.split(',')
         for pair_str in pairs_str:
@@ -262,10 +262,15 @@ class BatchJoin(SemanticJoin):
         right_items = [
             self._encode_item(right_key) \
             for right_key in right_keys]
+        # If there are no keys, return empty list
+        nr_left_items = len(left_items)
+        nr_right_items = len(right_items)
+        if nr_left_items == 0 or nr_right_items == 0:
+            return []
         # Construct prompt for LLM
         prompt = self._create_prompt(left_items, right_items)
-        print(f'Left join batch size: {len(left_items)}')
-        print(f'Right join batch size: {len(right_items)}')
+        # print(f'Left join batch size: {len(left_items)}')
+        # print(f'Right join batch size: {len(right_items)}')
         # Create logit bias toward numbers, hyphens, and "L"/"R"
         logit_bias = {}
         for i in range(10):
@@ -278,9 +283,18 @@ class BatchJoin(SemanticJoin):
         logit_bias[49] = 100 # R
         
         # Determine maximal number of tokens
-        max_tokens = len(left_items) * len(right_items) * 10
+        # print(prompt)
+        max_tokens = 1 + len(left_items) * len(right_items) * 10
+        
+        # print(f'max_tokens: {max_tokens}')
+        # print(f'Left keys: {len(left_keys)}')
+        # print(f'Right keys: {len(right_keys)}')
+        # print(f'logit_bias: {logit_bias}')
+        # print(prompt)
+        
         response = self.llm.chat.completions.create(
             model='gpt-4o',
+            # model='gpt-4o-mini',
             messages=[prompt],
             max_tokens=max_tokens,
             logit_bias=logit_bias,
@@ -293,8 +307,8 @@ class BatchJoin(SemanticJoin):
             matching_keys = self._extract_matches(
                 left_keys, right_keys, response)
         except:
-            print('Incorrect output format in LLM reply - error:')
-            traceback.print_exc()
+            print('Incorrect output format in LLM reply - continuing join.')
+            # traceback.print_exc()
             
         return matching_keys
 
@@ -329,7 +343,6 @@ class BatchJoin(SemanticJoin):
                 f'WITH ThalamusDB_pairs AS ({pairs_to_process_sql}) '
                 f'SELECT DISTINCT {key_col} FROM ThalamusDB_pairs '
                 f'LIMIT {nr_keys}')
-            print(get_keys_sql)
             keys = self.db.execute(get_keys_sql)
             keys_by_col.append(keys)
             

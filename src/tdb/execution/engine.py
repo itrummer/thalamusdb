@@ -8,6 +8,7 @@ from tdb.operators.semantic_filter import UnaryFilter
 from tdb.operators.semantic_join import BatchJoin
 from tdb.queries.query import JoinPredicate, UnaryPredicate
 from tdb.queries.rewriter import QueryRewriter
+from tdb.execution.counters import TdbCounters
 
 
 class ExecutionEngine:
@@ -20,6 +21,25 @@ class ExecutionEngine:
             db: Relational database instance.
         """
         self.db = db
+    
+    def _aggregate_counters(self, semantic_operators):
+        """ Aggregate counters from all semantic operators.
+        
+        Args:
+            semantic_operators: List of semantic operators used in the query.
+        
+        Returns:
+            Counters representing the sum of all operator counters.
+        """
+        sum_counters = TdbCounters(0, 0, 0)
+        for op in semantic_operators:
+            op_counters = TdbCounters(
+                LLM_calls=op.nr_llm_calls,
+                input_tokens=op.nr_input_tokens,
+                output_tokens=op.nr_output_tokens)
+            sum_counters += op_counters
+
+        return sum_counters
     
     def _create_operators(self, query):
         """ Create semantic operators needed to execute query.
@@ -132,7 +152,7 @@ class ExecutionEngine:
             constraint: defines termination conditions.
         
         Returns:
-            dict: Information about the execution, including error and LUs.
+            Tuple query result and cost counters.
         """
         semantic_operators = self._create_operators(query)
         for operator in semantic_operators:
@@ -140,7 +160,7 @@ class ExecutionEngine:
         
         # Continue processing until error is sufficiently low
         error = float('inf')
-        while error > 0.1:
+        while error > 0:
             # Process more rows for each operator
             for op in semantic_operators:
                 op.execute(10, None)
@@ -155,3 +175,10 @@ class ExecutionEngine:
             aggregate_results.output()
             error = aggregate_results.error()
             print(f'Error: {error}')
+        
+        # Depending on the termination condition, we may
+        # have processed only a subset of the data. In that
+        # case, we return a query result that seems likely.
+        best_guess_result = aggregate_results.result()
+        counters = self._aggregate_counters(semantic_operators)
+        return best_guess_result, counters
