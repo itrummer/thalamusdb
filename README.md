@@ -1,7 +1,5 @@
 # ThalamusDB: Semantic SQL Queries on Multimodal Data
 
-[Research Paper](https://dl.acm.org/doi/10.1145/3654989) [Demo Paper](https://dl.acm.org/doi/abs/10.1145/3555041.3589730) [Demo Video](https://youtu.be/wV9UhULhFg8)
-
 ThalamusDB is an approximate processing engine supporting SQL queries with semantic operators.
 
 # Quick Start
@@ -62,4 +60,19 @@ You can set each of these properties using the following command:
 
 ```
 set [Property]=[Value]
+```
+
+# How to Cite
+
+```
+@article{jo2024thalamusdb,
+  title={Thalamusdb: Approximate query processing on multi-modal data},
+  author={Jo, Saehan and Trummer, Immanuel},
+  journal={Proceedings of the ACM on Management of Data},
+  volume={2},
+  number={3},
+  pages={1--26},
+  year={2024},
+  publisher={ACM New York, NY, USA}
+}
 ```
