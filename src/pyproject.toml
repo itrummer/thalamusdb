@@ -1,0 +1,29 @@
+[build-system]
+requires = ['setuptools>=78']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'ThalamusDB'
+version = '0.1.2'
+description = 'ThalamusDB: Semantic Query Processing on Multimodal Data'
+dependencies = [
+    'duckdb==1.3.2',
+    'openai==1.95.1',
+    'pandas==2.3.1',
+    'sqlglot==27.0.0'
+]
+requires-python = '>=3.12'
+authors=[
+	{name = 'Immanuel Trummer'},
+	{name = 'Saehan Jo'}
+	]
+license = 'MIT'
+keywords = [
+    'semantic query processing',
+    'multimodal data',
+    'large language models',
+    'approximate query processing',
+]
+
+[project.scripts]
+thalamusdb = 'tdb.console:run_console'
