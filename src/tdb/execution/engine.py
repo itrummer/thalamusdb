@@ -3,6 +3,8 @@ Created on Jul 16, 2025
 
 @author: immanueltrummer
 '''
+import time
+
 from tdb.execution.results import AggregateResults, RetrievalResults
 from tdb.operators.semantic_filter import UnaryFilter
 from tdb.operators.semantic_join import BatchJoin
@@ -144,21 +146,21 @@ class ExecutionEngine:
         result = self.db.execute(rewritten_query)
         return result
 
-    def run(self, query, constraint):
+    def run(self, query, constraints):
         """ Run an SQL query with natural language components.
         
         Args:
             query: Represents a query with semantic operators.
-            constraint: defines termination conditions.
+            constraints: defines termination conditions.
         
         Returns:
             Tuple query result and cost counters.
         """
+        start_s = time.time()
         semantic_operators = self._create_operators(query)
         for operator in semantic_operators:
             operator.prepare()
         
-        # Continue processing until error is sufficiently low
         error = float('inf')
         while error > 0:
             # Process more rows for each operator
@@ -175,6 +177,13 @@ class ExecutionEngine:
             aggregate_results.output()
             error = aggregate_results.error()
             print(f'Error: {error}')
+            
+            total_s = time.time() - start_s
+            counter_sum = self._aggregate_counters(
+                semantic_operators)
+            if constraints.terminate(
+                counter_sum, total_s, error):
+                break
         
         # Depending on the termination condition, we may
         # have processed only a subset of the data. In that
