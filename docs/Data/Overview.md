@@ -1,6 +1,7 @@
 ---
 title: Data Model
 parent: ThalamusDB
+nav_order: 2
 ---
 
 # Data Model
