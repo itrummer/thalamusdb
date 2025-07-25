@@ -1,6 +1,6 @@
 ---
 title: Aggregation Queries
-parent: Approximate Processing
+parent: Approximation
 nav_order: 1
 ---
 # Aggregation Queries
