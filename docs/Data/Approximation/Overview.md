@@ -1,5 +1,5 @@
 ---
-title: Approximate Processing
+title: Approximation
 parent: ThalamusDB
 nav_order: 3
 ---
