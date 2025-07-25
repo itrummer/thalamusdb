@@ -201,7 +201,11 @@ class BatchJoin(SemanticJoin):
             'separated by commas. Write "." after the last pair. '
             'Sample output: "L3-R5,L4-R2,L1-R1." The output may be empty.'
             )
-        content = [task]
+        content = [{
+            'type': 'text',
+            'text': task
+            }
+        ]
         for table_id, items in [
             ('L', left_items), 
             ('R', right_items)]:
@@ -269,6 +273,7 @@ class BatchJoin(SemanticJoin):
             return []
         # Construct prompt for LLM
         prompt = self._create_prompt(left_items, right_items)
+        # print(prompt)
         # print(f'Left join batch size: {len(left_items)}')
         # print(f'Right join batch size: {len(right_items)}')
         # Create logit bias toward numbers, hyphens, and "L"/"R"
