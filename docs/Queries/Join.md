@@ -13,10 +13,7 @@ The `NLjoin(T1, C1, T2, C2, P)` operator is configured using five parameters:
 - `C2` Name of a column in the second table
 - `P` Join condition in natural language
 
-`NLjoin` appears in the `WHERE` clause of the associated query (i.e., not in the `FROM` clause). 
-
-{: .important }
-Note that `NLjoin` only specifies the join condition. The joined tables must still appear in the SQL `FROM` clause of the associated query (without the `JOIN` keyword).
+`NLjoin` appears in the `WHERE` clause of the associated query (i.e., not in the `FROM` clause). Note that `NLjoin` only specifies the join condition. The joined tables must still appear in the SQL `FROM` clause of the associated query (without the `JOIN` keyword).
 
 Here are a few example queries using the semantic join operator:
 
