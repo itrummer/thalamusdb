@@ -5,7 +5,7 @@ nav_order: 0
 ---
 # Quickstart
 
-## Installation
+## Setup
 
 ThalamusDB can be installed easily via `pip` from the console:
 
@@ -19,7 +19,7 @@ Alternatively, download the code of ThalamusDB by cloning the corresponding GitH
 git clone https://github.com/itrummer/thalamusdb
 ```
 
-## Starting ThalamusDB
+## Using ThalamusDB
 
 After installing ThalamusDB via `pip`, use the following command in the terminal to start ThalamusDB:
 
