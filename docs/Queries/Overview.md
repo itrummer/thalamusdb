@@ -1,6 +1,7 @@
 ---
 title: Query Model
 parent: ThalamusDB
+nav_order: 2
 ---
 
 # Query Model
