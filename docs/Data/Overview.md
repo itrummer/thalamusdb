@@ -1,3 +1,7 @@
+---
+title: Overview
+---
+
 # Data Model
 
 ThalamusDB processes tables as well as unstructured data formats, such as images. Data are represented by a relational database. Cells in those tables may contain references to unstructured files, e.g., images. If cells contain references to unstructured data files, ThalamusDB automatically accesses the referenced files during query processing.
