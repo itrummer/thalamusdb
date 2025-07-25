@@ -1,5 +1,6 @@
 ---
 title: Data Model
+parent: ThalamusDB
 ---
 
 # Data Model
