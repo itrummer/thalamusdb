@@ -3,6 +3,8 @@ title: Images
 parent: Data Model
 ---
 
+# Images
+
 ThalamusDB tables may contain references to image files. To refer to an image, store the path of the associated image file in a column of SQL type `text`. The image must be stored locally. ThalamusDB automatically checks cells of text columns to recognize image paths. If the content of a cell is an image path, ThalamusDB automatically sends the image file (instead of the raw cell content) to an LLM during query processing.
 
 ThalamusDB recognizes image references by the suffix of the path stored in a table cell. Currently, the following image formats are supported:
