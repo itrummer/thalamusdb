@@ -1,5 +1,6 @@
 ---
 title: Query Model
+parent: ThalamusDB
 ---
 
 # Query Model
