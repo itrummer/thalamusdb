@@ -21,5 +21,15 @@ Note that `NLjoin` only specifies the join condition. The joined tables must sti
 Here are a few example queries using the semantic join operator:
 
 ```
-SELECT H.pic, P.pic FROM HolidayPictures H, ProfilePictures P WHERE NLjoin(H, pic, P, pic, 'The two pictures show the same person');
+SELECT H.pic, P.pic
+FROM HolidayPictures H, ProfilePictures P
+WHERE NLjoin(H, pic, P, pic, 'The two pictures show the same person');
+```
+
+```
+SELECT description, pic
+FROM Descriptions, Pictures
+WHERE NLjoin(
+  Descriptions, description, Pictures, pic,
+  'The description matches the picture');
 ```
