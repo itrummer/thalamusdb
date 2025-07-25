@@ -1,3 +1,7 @@
+---
+title: Query Model
+---
+
 # Query Model
 
 ThalamusDB supports SQL with semantic operators on unstructured data types. Semantic operators are described in natural language and evaluated using LLMs. For instance, it is possible to count the number of images showing red cars in the database by a query of the following format:
