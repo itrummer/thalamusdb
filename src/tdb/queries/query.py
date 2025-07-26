@@ -2,13 +2,17 @@
 Created on Jul 17, 2025
 
 @author: immanueltrummer
+
+Note that the query parsing logic is currently simple.
+In particular, it assumes that table aliases are unique
+across different sub-queries.
 '''
 import sqlglot
 
 from dataclasses import dataclass
 from sqlglot import exp
 from sqlglot.optimizer.qualify import qualify
-from sqlglot.optimizer.scope import Scope
+from sqlglot.optimizer.scope import Scope, traverse_scope
 
 
 @dataclass
@@ -60,33 +64,40 @@ class Query():
         schema = db.schema()
         ast = sqlglot.parse_one(sql)
         qualified_exp = qualify(ast, schema=schema)
+        alias2table = self._alias2table(qualified_exp)
         scope = Scope(qualified_exp)
-        alias2table = self._alias2table(scope)
         semantic_predicates = \
             self._collect_semantic_predicates(
             qualified_exp, alias2table)
         
+        self.qualified_exp = qualified_exp
         self.qualified_sql = qualified_exp.sql()
-        self.scope = Scope(qualified_exp)
+        self.scope = scope
         self.alias2table = alias2table
         aliases = alias2table.keys()
         self.alias2unary_sql = self._collect_unary_sql_predicates(
             qualified_exp, aliases)
         self.semantic_predicates = semantic_predicates
     
-    def _alias2table(self, scope):
+    def _alias2table(self, qualified_exp):
         """ Maps table aliases to table names.
 
         Args:
-            scope (Scope): Scope containing the tables.
+            qualified_exp (exp.Expression): Fully qualified SQL expression.
         
         Returns:
             Dictionary mapping table aliases to their names.
         """
         alias2table = {}
-        for table in scope.tables:
-            alias = table.alias
-            alias2table[alias] = table.name
+        for scope in traverse_scope(qualified_exp):            
+            for table in scope.tables:
+                alias = table.alias
+                table_name = table.name
+                if not alias:
+                    alias = table_name
+                
+                alias2table[alias] = table_name
+        
         return alias2table
 
     def _collect_conjuncts_rec(self, conjunction_ast):
@@ -167,19 +178,25 @@ class Query():
             alias : exp.Boolean(this=True) \
             for alias in aliases
             }
-        where_clause = qualified_sql.args.get('where')
-        if where_clause is not None:
-            where_content = where_clause.this
-            conjuncts = self._collect_conjuncts_rec(
-                where_content)
-            for conjunct in conjuncts:
-                alias = self._get_unary_alias(conjunct)
-                if alias is not None and alias in aliases:
-                    prior_pred = alias2preds[alias]
-                    new_pred = exp.And(
-                        this=prior_pred, 
-                        expression=conjunct)
-                    alias2preds[alias] = new_pred
+        # Collect all queries to analyze (including sub-queries)
+        queries2analyze = [qualified_sql]
+        scope = Scope(qualified_sql)
+        queries2analyze.extend(scope.subqueries)
+        # Iterate over queries and analyze SELECT clauses
+        for query in queries2analyze:
+            where_clause = query.args.get('where')
+            if where_clause is not None:
+                where_content = where_clause.this
+                conjuncts = self._collect_conjuncts_rec(
+                    where_content)
+                for conjunct in conjuncts:
+                    alias = self._get_unary_alias(conjunct)
+                    if alias is not None and alias in aliases:
+                        prior_pred = alias2preds[alias]
+                        new_pred = exp.And(
+                            this=prior_pred, 
+                            expression=conjunct)
+                        alias2preds[alias] = new_pred
         
         return alias2preds
     
@@ -223,7 +240,10 @@ if __name__ == "__main__":
     # query = Query(db, "SELECT NLfilter(ImagePath, 'Is it an elephant?') FROM images")
     db = Database('detective3.db')
     # query = Query(db, "SELECT NLfilter(ImagePath, 'Is it an elephant?') FROM images"
-    query = Query(db, "select S.FaceImage, M.FaceImage from ShopCams S, ShopCams M, TrafficCams where NLjoin(S.faceimage, M.faceimage, 'The pictures show the same person') and S.CameraLocation = 'Starbucks' and M.CameraLocation = 'McDonalds' and EXISTS (select * from shopcams as SC) and S.CameraLocation = 'test' and S.CameraLocation = S.FaceImage;")
+    #query = Query(db, "select S.FaceImage, M.FaceImage from ShopCams S, ShopCams M, TrafficCams where NLjoin(S.faceimage, M.faceimage, 'The pictures show the same person') and S.CameraLocation = 'Starbucks' and M.CameraLocation = 'McDonalds' and EXISTS (select * from shopcams as SC) and S.CameraLocation = 'test' and S.CameraLocation = S.FaceImage;")
+    query = Query(db, "select D.ownername from DMV D, Evidence E where D.carmodel = E.cardescription and exists (select * from ShopCams S where S.cameralocation = 'Starbucks' and S.person = D.ownername) and exists (select * from ShopCams S where S.cameralocation = 'McDonalds' and S.person = D.ownername) and exists (select * from ShopCams S where S.cameralocation = 'Deli' and S.person = D.ownername);")
     print(query.qualified_sql)
+    from sqlglot.optimizer.eliminate_subqueries import eliminate_subqueries
+    eliminate_subqueries(query.qualified_exp)
     print(query.semantic_predicates)
     print(query.alias2unary_sql)

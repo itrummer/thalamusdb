@@ -88,6 +88,13 @@ class SemanticJoin(SemanticOperator):
                 f"WHERE left_{self.pred.left_column} = '{left_key}' "
                 f"AND right_{self.pred.right_column} = '{right_key}';")
             self.db.execute(update_sql)
+        
+        # Count number of entries with NULL results
+        count_sql = (
+            f'SELECT COUNT(*) FROM {self.tmp_table} '
+            f'WHERE result IS NULL;')
+        count = self.db.execute(count_sql)
+        print(f'Number of unprocessed pairs: {count[0][0]}')
     
     def prepare(self):
         """ Prepare for execution by creating a temporary table. """
@@ -130,6 +137,8 @@ class SemanticJoin(SemanticOperator):
             ' ' + where_sql + ';'
         )
         self.db.execute(fill_table_sql)
+        count = self.db.execute(f'select count(*) from {self.tmp_table};')
+        print(f'Temporary table {self.tmp_table} created with {count[0][0]} rows.')
 
 
 class NestedLoopJoin(SemanticJoin):
@@ -271,6 +280,8 @@ class BatchJoin(SemanticJoin):
         nr_right_items = len(right_items)
         if nr_left_items == 0 or nr_right_items == 0:
             return []
+        print(f'Nr of left items: {nr_left_items}, ')
+        print(f'Nr of right items: {nr_right_items}')
         # Construct prompt for LLM
         prompt = self._create_prompt(left_items, right_items)
         # print(prompt)
