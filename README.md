@@ -28,8 +28,8 @@ ThalamusDB supports SQL queries with semantic filter predicates. Specifically, T
 
 | Operator | Semantics |
 | --- | --- |
-| `NLfilter([Table], [Column], [Condition])` | Filters rows based on a condition in natural language |
-| `NLjoin([Table1], [Column1], [Table2], [Column2], [Condition])` | Filters row pairs using the join condition in natural language |
+| `NLfilter([Column], [Condition])` | Filters rows based on a condition in natural language |
+| `NLjoin([Column in Table 1], [Column in Table2], [Condition])` | Filters row pairs using the join condition in natural language |
 
 # Approximate Processing
 
