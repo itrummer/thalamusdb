@@ -10,13 +10,17 @@ from dataclasses import dataclass
 
 @dataclass
 class TdbCounters:
-    """ Contains counters measuring execution costs. """
+    """ Contains counters measuring execution costs and progress. """
     LLM_calls: int = 0
     """ Number of LLM calls made during the execution. """
     input_tokens: int = 0
     """ Number of input tokens in the LLM calls. """
     output_tokens: int = 0
     """ Number of output tokens in the LLM calls. """
+    processed_tasks: int = 0
+    """ Number of processed tasks requiring LLM invocations. """
+    unprocessed_tasks: int = 0
+    """ Number of unprocessed tasks that require LLM invocations. """
     
     def __add__(self, other_counter):
         """ Adds values for each counter.
@@ -32,5 +36,16 @@ class TdbCounters:
         return TdbCounters(
             LLM_calls=self.LLM_calls + other_counter.LLM_calls,
             input_tokens=self.input_tokens + other_counter.input_tokens,
-            output_tokens=self.output_tokens + other_counter.output_tokens
+            output_tokens=self.output_tokens + other_counter.output_tokens,
+            processed_tasks=self.processed_tasks + other_counter.processed_tasks,
+            unprocessed_tasks=self.unprocessed_tasks + other_counter.unprocessed_tasks
         )
+    
+    def pretty_print(self):
+        """ Prints counters for updates during query execution. """
+        print('Execution Counters:')
+        print(f'  LLM calls: {self.LLM_calls}')
+        print(f'  Input tokens: {self.input_tokens}')
+        print(f'  Output tokens: {self.output_tokens}')
+        print(f'  Processed tasks: {self.processed_tasks}')
+        print(f'  Unprocessed tasks: {self.unprocessed_tasks} (Upper Bound)')

@@ -45,11 +45,11 @@ def process_query(db, engine, constraints, cmd):
         query = Query(db, cmd)
         if query.semantic_predicates:
             start_time = time.time()
-            result, costs = engine.run(
+            result, counters = engine.run(
                 query, constraints)
             total_time = time.time() - start_time
             print(f'Query executed in {total_time:.2f} seconds.')
-            print(f'Execution costs: {costs}')
+            counters.pretty_print()
             print(f'Result: {result}')
         else:
             result = db.execute(cmd)

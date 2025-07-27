@@ -89,12 +89,19 @@ class SemanticJoin(SemanticOperator):
                 f"AND right_{self.pred.right_column} = '{right_key}';")
             self.db.execute(update_sql)
         
-        # Count number of entries with NULL results
-        count_sql = (
+        # Count number of processed tasks
+        count_processed_sql = (
+            f'SELECT COUNT(*) FROM {self.tmp_table} '
+            f'WHERE result IS NOT NULL;')
+        count_processed = self.db.execute(count_processed_sql)
+        self.counters.processed_tasks = count_processed[0][0]
+        
+        # Count number of unprocessed tasks
+        count_unprocessed_sql = (
             f'SELECT COUNT(*) FROM {self.tmp_table} '
             f'WHERE result IS NULL;')
-        count = self.db.execute(count_sql)
-        print(f'Number of unprocessed pairs: {count[0][0]}')
+        count_unprocessed = self.db.execute(count_unprocessed_sql)
+        self.counters.unprocessed_tasks = count_unprocessed[0][0]
     
     def prepare(self):
         """ Prepare for execution by creating a temporary table. """
@@ -137,8 +144,11 @@ class SemanticJoin(SemanticOperator):
             ' ' + where_sql + ';'
         )
         self.db.execute(fill_table_sql)
-        count = self.db.execute(f'select count(*) from {self.tmp_table};')
-        print(f'Temporary table {self.tmp_table} created with {count[0][0]} rows.')
+        
+        # Initialize task counters        
+        task_count = self.db.execute(
+            f'SELECT COUNT(*) FROM {self.tmp_table};')
+        self.counters.nr_unprocessed = task_count[0][0]
 
 
 class NestedLoopJoin(SemanticJoin):
@@ -180,7 +190,7 @@ class NestedLoopJoin(SemanticJoin):
                 logit_bias={15: 100, 16: 100},
                 temperature=0.0
             )
-            self.update_counters(response)
+            self.update_cost_counters(response)
             result = int(response.choices[0].message.content)
             if result == 1:
                 matches.append((left_key, right_key))
@@ -317,7 +327,7 @@ class BatchJoin(SemanticJoin):
             temperature=0.0,
             stop=['.']
         )
-        self.update_counters(response)
+        self.update_cost_counters(response)
         matching_keys = []
         try:
             matching_keys = self._extract_matches(

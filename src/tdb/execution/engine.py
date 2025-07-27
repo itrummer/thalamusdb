@@ -33,12 +33,9 @@ class ExecutionEngine:
         Returns:
             Counters representing the sum of all operator counters.
         """
-        sum_counters = TdbCounters(0, 0, 0)
+        sum_counters = TdbCounters()
         for op in semantic_operators:
-            op_counters = TdbCounters(
-                LLM_calls=op.nr_llm_calls,
-                input_tokens=op.nr_input_tokens,
-                output_tokens=op.nr_output_tokens)
+            op_counters = op.counters
             sum_counters += op_counters
 
         return sum_counters
@@ -179,8 +176,8 @@ class ExecutionEngine:
             print(f'Error: {error}')
             
             total_s = time.time() - start_s
-            counter_sum = self._aggregate_counters(
-                semantic_operators)
+            counter_sum = self._aggregate_counters(semantic_operators)
+            counter_sum.pretty_print()
             if constraints.terminate(
                 counter_sum, total_s, error):
                 break

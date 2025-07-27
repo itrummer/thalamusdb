@@ -5,6 +5,7 @@ Created on Jul 16, 2025
 '''
 import base64
 
+from tdb.execution.counters import TdbCounters
 from openai import OpenAI
 
 
@@ -24,9 +25,7 @@ class SemanticOperator:
         """
         self.db = db
         self.operator_ID = operator_ID
-        self.nr_llm_calls = 0
-        self.nr_input_tokens = 0
-        self.nr_output_tokens = 0
+        self.counters = TdbCounters()
         self.llm = OpenAI()
 
     def _encode_item(self, item_text):
@@ -72,12 +71,12 @@ class SemanticOperator:
         """ Prepare for execution by creating the temporary table. """
         raise NotImplementedError()
     
-    def update_counters(self, llm_reply):
-        """ Update the counters for the operator.
+    def update_cost_counters(self, llm_reply):
+        """ Update cost-related counters from LLM reply.
         
         Args:
             llm_reply: The reply from the LLM (currently only OpenAI).
         """
-        self.nr_llm_calls += 1
-        self.nr_input_tokens += llm_reply.usage.prompt_tokens
-        self.nr_output_tokens += llm_reply.usage.completion_tokens
+        self.counters.LLM_calls += 1
+        self.counters.input_tokens += llm_reply.usage.prompt_tokens
+        self.counters.output_tokens += llm_reply.usage.completion_tokens

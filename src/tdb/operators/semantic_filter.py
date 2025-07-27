@@ -59,7 +59,7 @@ class UnaryFilter(SemanticOperator):
             logit_bias={15: 100, 16: 100},
             temperature=0.0
         )
-        self.update_counters(response)
+        self.update_cost_counters(response)
         result = int(response.choices[0].message.content)           
         return result == 1
     
@@ -111,6 +111,11 @@ class UnaryFilter(SemanticOperator):
             'FROM ' + self.filtered_table + ' ' +\
             where_sql
         self.db.execute(fill_table_sql)
+        
+        # Initialize count of unprocessed tasks
+        count_sql = f'SELECT COUNT(*) FROM {self.tmp_table}'
+        count_result = self.db.execute(count_sql)
+        self.counters.nr_unprocessed = count_result[0][0]
     
     def execute(self, nr_rows, order):
         """ Execute operator on a given number of ordered rows.
@@ -131,3 +136,7 @@ class UnaryFilter(SemanticOperator):
                 f'simulated = {result} '
                 f"WHERE base_{self.filtered_column} = '{item_text}'")
             self.db.execute(update_sql)
+        
+        # Update task counters
+        self.counters.nr_processed += len(items_to_process)
+        self.counters.nr_unprocessed -= len(items_to_process)
