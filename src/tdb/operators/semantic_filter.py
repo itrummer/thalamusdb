@@ -9,17 +9,18 @@ from tdb.operators.semantic_operator import SemanticOperator
 class UnaryFilter(SemanticOperator):
     """ Base class for unary filters specified in natural language. """
     
-    def __init__(self, db, operator_ID, query, predicate):
+    def __init__(self, db, operator_ID, batch_size, query, predicate):
         """
         Initializes the unary filter.
         
         Args:
             db: Database containing the filtered table.
             operator_ID (str): Unique identifier for the operator.
+            batch_size (int): Number of items to process per call.
             query: Query containing the predicate.
             predicate: predicate expressed in natural language.
         """
-        super().__init__(db, operator_ID)
+        super().__init__(db, operator_ID, batch_size)
         self.query = query
         self.filtered_table = predicate.table
         self.filtered_alias = predicate.alias
@@ -117,15 +118,15 @@ class UnaryFilter(SemanticOperator):
         count_result = self.db.execute(count_sql)
         self.counters.nr_unprocessed = count_result[0][0]
     
-    def execute(self, nr_rows, order):
+    def execute(self, order):
         """ Execute operator on a given number of ordered rows.
         
         Args:
-            nr_rows (int): Number of rows to process.
             order (tuple): None or tuple (column, ascending flag).
         """
         # Retrieve nr_rows in sort order from temporary table
-        items_to_process = self._retrieve_items(nr_rows, order)
+        items_to_process = self._retrieve_items(
+            self.batch_size, order)
         # Process each row with LLM
         for item_text in items_to_process:
             result = self._evaluate_predicate(item_text)

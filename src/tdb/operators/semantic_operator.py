@@ -12,7 +12,7 @@ from openai import OpenAI
 class SemanticOperator:
     """ Base class for semantic operators. """
     
-    def __init__(self, db, operator_ID):
+    def __init__(self, db, operator_ID, batch_size):
         """
         Initializes the semantic operator with a unique identifier.
         
@@ -22,9 +22,11 @@ class SemanticOperator:
         Args:
             db: Represents the source database.
             operator_ID (str): Unique identifier for the operator.
+            batch_size (int): Determines number of items to process per call.
         """
         self.db = db
         self.operator_ID = operator_ID
+        self.batch_size = batch_size
         self.counters = TdbCounters()
         self.llm = OpenAI()
 
@@ -58,11 +60,10 @@ class SemanticOperator:
                 'text': item_text
             }
     
-    def execute(self, nr_rows, order):
-        """ Execute operator on a given number of ordered rows.
+    def execute(self, order):
+        """ Execute operator on a data batch.
         
         Args:
-            nr_rows (int): Number of rows to process.
             order (tuple): None or tuple with column name and "ascending" flag.            
         """
         raise NotImplementedError()

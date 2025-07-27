@@ -12,26 +12,28 @@ from tdb.operators.semantic_operator import SemanticOperator
 class SemanticJoin(SemanticOperator):
     """ Represents a semantic join operator in a query. """
     
-    def __init__(self, db, operator_ID, query, join_predicate):
+    def __init__(
+            self, db, operator_ID, batch_size, 
+            query, join_predicate):
         """
         Initializes the semantic join operator.
         
         Args:
             db: Database containing the joined tables.
             operator_ID (str): Unique identifier for the operator.
+            batch_size (int): Number of items to process per call.
             query: Query containing the join predicate.
             join_predicate: Join predicate expressed in natural language.
         """
-        super().__init__(db, operator_ID)
+        super().__init__(db, operator_ID, batch_size)
         self.query = query
         self.pred = join_predicate
         self.tmp_table = f'ThalamusDB_{self.operator_ID}'
     
-    def _get_join_candidates(self, nr_pairs, order):
+    def _get_join_candidates(self, order):
         """ Retrieves a given number of ordered row pairs in given order.
         
         Args:
-            nr_pairs (int): Number of row pairs to retrieve.
             order (str): None or tuple (table, column, ascending flag).
         
         Returns:
@@ -43,9 +45,31 @@ class SemanticJoin(SemanticOperator):
             f'SELECT {left_key_col}, {right_key_col} '
             f'FROM {self.tmp_table} '
             f'WHERE result IS NULL '
-            f'LIMIT {nr_pairs}')
+            f'LIMIT {self.batch_size}')
         pairs = self.db.execute(retrieval_sql)
         return pairs
+
+    def _filter_join_inputs(self):
+        """ Use pure SQL predicates to filter join inputs.
+        
+        This method creates two temporary tables, containing
+        the left and right join inputs after applying all
+        unary predicates expressed in pure SQL.
+        """
+        left_alias = self.pred.left_alias
+        left_table = self.pred.left_table
+        right_alias = self.pred.right_alias
+        right_table = self.pred.right_table
+        for alias, table, side in [
+            (left_alias, left_table, 'Left'),
+            (right_alias, right_table, 'Right')]:
+            pure_SQL_filters = self.query.alias2unary_sql[alias]
+            filter_sql = (
+                'CREATE OR REPLACE TEMPORARY TABLE '
+                f'ThalamusDB_{side}JoinInputFiltered AS '
+                f'SELECT * FROM {table} AS {alias} '
+                f'WHERE {pure_SQL_filters.sql()};')
+            self.db.execute(filter_sql)
         
     def _find_matches(self, pairs):
         """ Finds pairs satisfying the join condition.
@@ -59,15 +83,14 @@ class SemanticJoin(SemanticOperator):
         raise NotImplementedError(
             'Instantiate one of the sub-classes of SemanticJoin!')
     
-    def execute(self, nr_pairs, order):
+    def execute(self, order):
         """ Executes the join on a given number of ordered rows.
         
         Args:
-            nr_pairs (int): Number of row pairs to process.
             order (str): None or tuple (table, column, ascending flag).
         """
         # Retrieve candidate pairs and set the result to NULL
-        pairs = self._get_join_candidates(nr_pairs, order)
+        pairs = self._get_join_candidates(order)
         for left_key, right_key in pairs:
             update_sql = (
                 f'UPDATE {self.tmp_table} '
@@ -105,9 +128,14 @@ class SemanticJoin(SemanticOperator):
     
     def prepare(self):
         """ Prepare for execution by creating a temporary table. """
+        # Apply pure SQL filters to the left and right tables
+        self._filter_join_inputs()
+        
         left_columns = self.db.columns(self.pred.left_table)
         right_columns = self.db.columns(self.pred.right_table)
-        temp_schema_parts = ['result BOOLEAN', 'simulated BOOLEAN']
+        temp_schema_parts = [
+            'result BOOLEAN', 'simulated BOOLEAN',
+            'batch_ID_left INT', 'batch_ID_right INT']
         for col_name, col_type in left_columns:
             tmp_col_name = f'left_{col_name}'
             temp_schema_parts.append(f'{tmp_col_name} {col_type}')
@@ -121,27 +149,30 @@ class SemanticJoin(SemanticOperator):
         self.db.execute(create_table_sql)
 
         left_alias = self.pred.left_alias
-        right_alias = self.pred.right_alias        
+        right_alias = self.pred.right_alias
+        left_filtered_table = 'ThalamusDB_LeftJoinInputFiltered'
+        right_filtered_table = 'ThalamusDB_RightJoinInputFiltered'
+        left_batch_ID_exp = (
+            f'floor({left_alias}.rowid / ' 
+            f'{self.batch_size})::INTEGER')
+        right_batch_ID_exp = (
+            f'floor({right_alias}.rowid / ' 
+            f'{self.batch_size})::INTEGER')
         left_select_items = [
             f'{left_alias}.{col[0]} AS left_{col[0]}' \
             for col in left_columns]
         right_select_items = [
             f'{right_alias}.{col[0]} AS right_{col[0]}' \
             for col in right_columns]
-        other_filters_left = self.query.alias2unary_sql[left_alias]
-        other_filters_right = self.query.alias2unary_sql[right_alias]
-        other_filters = exp.And(
-            this=other_filters_left,
-            expression=other_filters_right)
-        where_sql = 'WHERE ' + other_filters.sql()
         fill_table_sql = (
             f'INSERT INTO {self.tmp_table} '
             f'SELECT NULL AS result, NULL AS simulated, '
+            f'{left_batch_ID_exp} AS batch_ID_left, '
+            f'{right_batch_ID_exp} AS batch_ID_right, '
             + ', '.join(left_select_items) + ', '
             + ', '.join(right_select_items) + ' '
-            f'FROM {self.pred.left_table} {left_alias}, '
-            f'{self.pred.right_table} {right_alias} '
-            ' ' + where_sql + ';'
+            f'FROM {left_filtered_table} {left_alias}, '
+            f'{right_filtered_table} {right_alias};'
         )
         self.db.execute(fill_table_sql)
         
@@ -264,7 +295,7 @@ class BatchJoin(SemanticJoin):
             key_pair = (left_key, right_key)
             matching_keys.append(key_pair)
         
-        return matching_keys
+        return matching_keys        
 
     def _find_matches(self, pairs):
         """ Finds pairs satisfying the join condition.
@@ -338,44 +369,39 @@ class BatchJoin(SemanticJoin):
             
         return matching_keys
 
-    def _get_join_candidates(self, nr_keys, order):
-        """ Retrieves up to a given number of join keys from each table.
+    def _get_join_candidates(self, order):
+        """ Retrieves unprocessed join pairs for LLM-based evaluation.
         
         Currently, ordered retrieval is not supported. The
-        function returns the Cartesian product of left and
-        right keys (for compatibility with matching function).
-        Each key that appears in the result has at least one
-        unprocessed pair in the temporary table.
+        retrieval function retrieves all join pairs that are
+        associated with a specific combination of left and
+        right batch IDs.
         
         Args:
-            nr_keys (int): Number of keys to retrieve.
             order (str): None or tuple (table, column, ascending flag).
         
         Returns:
             list: List of key pairs from the left and right table.
         """
-        # Query for unprocessed join pairs
+        # Get unprocessed batch IDs for left and right tables
+        find_batch_ids_sql = (
+            'SELECT batch_ID_left, batch_ID_right '
+            f'FROM {self.tmp_table} '
+            'WHERE result IS NULL '
+            'LIMIT 1;')
+        batch_ids = self.db.execute(find_batch_ids_sql)
+        if len(batch_ids) == 0:
+            return []
+        batch_ID_left, batch_ID_right = batch_ids[0]
+        
+        # Get all key pairs associated with the batch IDs
         left_key_col = f'left_{self.pred.left_column}'
         right_key_col = f'right_{self.pred.right_column}'
-        pairs_to_process_sql = (
+        pairs_sql = (
             f'SELECT {left_key_col}, {right_key_col} '
             f'FROM {self.tmp_table} '
-            f'WHERE result IS NULL ')
-        
-        # Retrieve requested number of keys from both tables
-        keys_by_col = []
-        for key_col in [left_key_col, right_key_col]:
-            get_keys_sql = (
-                f'WITH ThalamusDB_pairs AS ({pairs_to_process_sql}) '
-                f'SELECT DISTINCT {key_col} FROM ThalamusDB_pairs '
-                f'LIMIT {nr_keys}')
-            keys = self.db.execute(get_keys_sql)
-            keys_by_col.append(keys)
-            
-        # Create pairs of keys from both tables
-        pairs = []
-        for left_key in keys_by_col[0]:
-            for right_key in keys_by_col[1]:
-                pairs.append((left_key[0], right_key[0]))
-                
+            f'WHERE batch_ID_left = {batch_ID_left} '
+            f'AND batch_ID_right = {batch_ID_right} '
+            f'AND result IS NULL;')
+        pairs = self.db.execute(pairs_sql)
         return pairs
