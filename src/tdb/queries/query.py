@@ -137,7 +137,7 @@ class Query():
                 qualified_column = expressions[0]
                 column = qualified_column.args['this'].name
                 table = qualified_column.args['table'].name
-                alias = self.alias2table[table]
+                alias = alias2table[table]
                 condition = expressions[1].this
                 sql = expr.sql()
                 predicate = UnaryPredicate(

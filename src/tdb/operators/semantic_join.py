@@ -58,17 +58,19 @@ class SemanticJoin(SemanticOperator):
         """
         left_alias = self.pred.left_alias
         left_table = self.pred.left_table
+        left_column = self.pred.left_column
         right_alias = self.pred.right_alias
         right_table = self.pred.right_table
-        for alias, table, side in [
-            (left_alias, left_table, 'Left'),
-            (right_alias, right_table, 'Right')]:
+        right_column = self.pred.right_column
+        for alias, table, col, side in [
+            (left_alias, left_table, left_column, 'Left'),
+            (right_alias, right_table, right_column, 'Right')]:
             pure_SQL_filters = self.query.alias2unary_sql[alias]
             filter_sql = (
                 'CREATE OR REPLACE TEMPORARY TABLE '
                 f'ThalamusDB_{side}JoinInputFiltered AS '
                 f'SELECT * FROM {table} AS {alias} '
-                f'WHERE {pure_SQL_filters.sql()};')
+                f'WHERE {pure_SQL_filters.sql()} AND {col} IS NOT NULL;')
             self.db.execute(filter_sql)
         
     def _find_matches(self, pairs):

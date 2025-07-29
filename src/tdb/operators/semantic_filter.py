@@ -104,7 +104,9 @@ class UnaryFilter(SemanticOperator):
         
         # Use pure SQL predicates for pruning, if available
         other_filters = self.query.alias2unary_sql[self.filtered_alias]
-        where_sql = f'WHERE {other_filters.sql()}'
+        where_sql = (
+            f'WHERE {other_filters.sql()} ' 
+            f'AND {self.filtered_column} IS NOT NULL')
         fill_table_sql = \
             f'INSERT INTO {self.tmp_table} ' +\
             'SELECT NULL, NULL, ' +\
@@ -116,7 +118,7 @@ class UnaryFilter(SemanticOperator):
         # Initialize count of unprocessed tasks
         count_sql = f'SELECT COUNT(*) FROM {self.tmp_table}'
         count_result = self.db.execute(count_sql)
-        self.counters.nr_unprocessed = count_result[0][0]
+        self.counters.unprocessed_tasks = count_result[0][0]
     
     def execute(self, order):
         """ Execute operator on a given number of ordered rows.
@@ -131,13 +133,14 @@ class UnaryFilter(SemanticOperator):
         for item_text in items_to_process:
             result = self._evaluate_predicate(item_text)
             # Update temporary table with results
+            escaped_item_text = item_text.replace("'", "''")
             update_sql = (
                 f'UPDATE {self.tmp_table} '
                 f'SET result = {result}, '
                 f'simulated = {result} '
-                f"WHERE base_{self.filtered_column} = '{item_text}'")
+                f"WHERE base_{self.filtered_column} = '{escaped_item_text}'")
             self.db.execute(update_sql)
         
         # Update task counters
-        self.counters.nr_processed += len(items_to_process)
-        self.counters.nr_unprocessed -= len(items_to_process)
+        self.counters.processed_tasks += len(items_to_process)
+        self.counters.unprocessed_tasks -= len(items_to_process)
