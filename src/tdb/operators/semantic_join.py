@@ -107,11 +107,13 @@ class SemanticJoin(SemanticOperator):
         
         # Update the temporary table with the results
         for left_key, right_key in matches:
+            escaped_left_key = left_key.replace("'", "''")
+            escaped_right_key = right_key.replace("'", "''")
             update_sql = (
                 f'UPDATE {self.tmp_table} '
                 f'SET result = TRUE, simulated = TRUE '
-                f"WHERE left_{self.pred.left_column} = '{left_key}' "
-                f"AND right_{self.pred.right_column} = '{right_key}';")
+                f"WHERE left_{self.pred.left_column} = '{escaped_left_key}' "
+                f"AND right_{self.pred.right_column} = '{escaped_right_key}';")
             self.db.execute(update_sql)
         
         # Count number of processed tasks
