@@ -15,9 +15,9 @@ If a cell in `C` contains a path leading to an image (in one of the supported fo
 Here are a few example queries using the semantic filter operator:
 
 ```
-SELECT COUNT(*) FROM T WHERE (T.CarImages, 'The picture shows a red car');
+SELECT COUNT(*) FROM T WHERE NLfilter(T.CarImages, 'The picture shows a red car');
 ```
 
 ```
-SELECT Review FROM Movies WHERE (Movies.Review, 'The review is positive');
+SELECT Review FROM Movies WHERE NLfilter(Movies.Review, 'The review is positive');
 ```
