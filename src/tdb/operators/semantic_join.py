@@ -94,11 +94,13 @@ class SemanticJoin(SemanticOperator):
         # Retrieve candidate pairs and set the result to NULL
         pairs = self._get_join_candidates(order)
         for left_key, right_key in pairs:
+            escaped_left_key = left_key.replace("'", "''")
+            escaped_right_key = right_key.replace("'", "''")
             update_sql = (
                 f'UPDATE {self.tmp_table} '
                 f'SET result = False, simulated = False '
-                f"WHERE left_{self.pred.left_column} = '{left_key}' "
-                f"AND right_{self.pred.right_column} = '{right_key}' "
+                f"WHERE left_{self.pred.left_column} = '{escaped_left_key}' "
+                f"AND right_{self.pred.right_column} = '{escaped_right_key}' "
                 f'AND result IS NULL;')
             self.db.execute(update_sql)
         

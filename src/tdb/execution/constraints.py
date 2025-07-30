@@ -11,7 +11,7 @@ class Constraints():
     """ Represents constraints on query execution costs. """
     max_seconds: int = 600
     """ Maximum execution time in seconds. """
-    max_calls: int = 100
+    max_calls: int = 1000
     """ Maximum number of LLM calls. """
     max_tokens: int = 1000000
     """ Maximum number of LLM tokens processed. """
