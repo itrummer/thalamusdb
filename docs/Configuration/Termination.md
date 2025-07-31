@@ -1,6 +1,6 @@
 ---
 title: Termination
-parent: Configuration
+parent: Configuration Options
 ---
 
 # Configuring Termination Conditions
