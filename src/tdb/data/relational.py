@@ -32,7 +32,7 @@ class Database():
         result = self.con.execute(query).fetchall()
         return [(col[1], col[2]) for col in result]
     
-    def execute(self, query):
+    def execute2df(self, query):
         """
         Executes a SQL query on the database.
 
@@ -40,7 +40,20 @@ class Database():
             query (str): SQL query to execute.
 
         Returns:
-            Result of the query execution.
+            Result of the query execution as pandas data frame.
+        """
+        # print(f'Executing: {query}')
+        return self.con.execute(query).df()
+    
+    def execute2list(self, query):
+        """
+        Executes a SQL query and returns the result as a list.
+
+        Args:
+            query (str): SQL query to execute.
+
+        Returns:
+            List of results from the query execution.
         """
         # print(f'Executing: {query}')
         return self.con.execute(query).fetchall()

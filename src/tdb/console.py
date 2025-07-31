@@ -7,10 +7,13 @@ import argparse
 import time
 import traceback
 
+from rich.console import Console
+from rich.rule import Rule
 from tdb.data.relational import Database
 from tdb.execution.constraints import Constraints
 from tdb.execution.engine import ExecutionEngine
 from tdb.queries.query import Query
+from tdb.ui.util import print_df
 
 
 def print_welcome():
@@ -41,19 +44,20 @@ def process_query(db, engine, constraints, cmd):
         constraints: Constraints on query execution.
         cmd: SQL command string containing the query.
     """
+    console = Console()
     try:
         query = Query(db, cmd)
         if query.semantic_predicates:
             start_time = time.time()
-            result, counters = engine.run(
-                query, constraints)
+            result, counters = engine.run(query, constraints)
             total_time = time.time() - start_time
+            console.print(Rule('Query Processing Summary'))
             print(f'Query executed in {total_time:.2f} seconds.')
             counters.pretty_print()
-            print(f'Result: {result}')
+            print_df(result)
         else:
-            result = db.execute(cmd)
-            print(result)
+            result = db.execute2df(cmd)
+            print_df(result)
     except Exception:
         print('Error processing query:')
         traceback.print_exc()

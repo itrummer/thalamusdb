@@ -5,7 +5,10 @@ Created on Jul 16, 2025
 
 Contains counters measuring execution costs.
 '''
+import pandas as pd
+
 from dataclasses import dataclass
+from tdb.ui.util import print_df
 
 
 @dataclass
@@ -43,9 +46,11 @@ class TdbCounters:
     
     def pretty_print(self):
         """ Prints counters for updates during query execution. """
-        print('Execution Counters:')
-        print(f'  LLM calls: {self.LLM_calls}')
-        print(f'  Input tokens: {self.input_tokens}')
-        print(f'  Output tokens: {self.output_tokens}')
-        print(f'  Processed tasks: {self.processed_tasks}')
-        print(f'  Unprocessed tasks: {self.unprocessed_tasks} (Upper Bound)')
+        counter_df = pd.DataFrame({
+            'LLM Calls': [self.LLM_calls],
+            'Input Tokens': [self.input_tokens],
+            'Output Tokens': [self.output_tokens],
+            'Processed Tasks': [self.processed_tasks],
+            'Unprocessed Tasks': [self.unprocessed_tasks]
+            })
+        print_df(counter_df, title='Execution Counters')

@@ -5,6 +5,9 @@ Created on Jul 16, 2025
 '''
 import time
 
+from pandas.api.types import is_numeric_dtype
+from rich.console import Console
+from rich.rule import Rule
 from tdb.execution.results import AggregateResults, RetrievalResults
 from tdb.operators.semantic_filter import UnaryFilter
 from tdb.operators.semantic_join import BatchJoin
@@ -90,9 +93,10 @@ class ExecutionEngine:
         
         # Check if all cells in the results are numerical
         for result in results:
-            for cell in result[0]:
-                if not isinstance(cell, (int, float)):
-                    return False
+            all_numerical = result.apply(
+                lambda x: is_numeric_dtype(x)).all()
+            if not all_numerical:
+                return False
         
         return True
     
@@ -140,7 +144,7 @@ class ExecutionEngine:
             op2default[op] = default_val
         
         rewritten_query = rewriter.pure_sql(op2default)
-        result = self.db.execute(rewritten_query)
+        result = self.db.execute2df(rewritten_query)
         return result
 
     def run(self, query, constraints):
@@ -154,6 +158,8 @@ class ExecutionEngine:
             Tuple query result and cost counters.
         """
         start_s = time.time()
+        console = Console()
+        
         semantic_operators = self._create_operators(query)
         for operator in semantic_operators:
             operator.prepare()
@@ -171,6 +177,7 @@ class ExecutionEngine:
             else:
                 aggregate_results = RetrievalResults(results)
             
+            console.print(Rule('Query Progress Updates'))
             aggregate_results.output()
             error = aggregate_results.error()
             print(f'Error: {error}')

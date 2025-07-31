@@ -46,7 +46,7 @@ class SemanticJoin(SemanticOperator):
             f'FROM {self.tmp_table} '
             f'WHERE result IS NULL '
             f'LIMIT {self.batch_size}')
-        pairs = self.db.execute(retrieval_sql)
+        pairs = self.db.execute2list(retrieval_sql)
         return pairs
 
     def _filter_join_inputs(self):
@@ -71,7 +71,7 @@ class SemanticJoin(SemanticOperator):
                 f'ThalamusDB_{side}JoinInputFiltered AS '
                 f'SELECT * FROM {table} AS {alias} '
                 f'WHERE {pure_SQL_filters.sql()} AND {col} IS NOT NULL;')
-            self.db.execute(filter_sql)
+            self.db.execute2list(filter_sql)
         
     def _find_matches(self, pairs):
         """ Finds pairs satisfying the join condition.
@@ -102,7 +102,7 @@ class SemanticJoin(SemanticOperator):
                 f"WHERE left_{self.pred.left_column} = '{escaped_left_key}' "
                 f"AND right_{self.pred.right_column} = '{escaped_right_key}' "
                 f'AND result IS NULL;')
-            self.db.execute(update_sql)
+            self.db.execute2list(update_sql)
         
         # Find matching pairs of keys
         matches = self._find_matches(pairs)
@@ -116,20 +116,20 @@ class SemanticJoin(SemanticOperator):
                 f'SET result = TRUE, simulated = TRUE '
                 f"WHERE left_{self.pred.left_column} = '{escaped_left_key}' "
                 f"AND right_{self.pred.right_column} = '{escaped_right_key}';")
-            self.db.execute(update_sql)
+            self.db.execute2list(update_sql)
         
         # Count number of processed tasks
         count_processed_sql = (
             f'SELECT COUNT(*) FROM {self.tmp_table} '
             f'WHERE result IS NOT NULL;')
-        count_processed = self.db.execute(count_processed_sql)
+        count_processed = self.db.execute2list(count_processed_sql)
         self.counters.processed_tasks = count_processed[0][0]
         
         # Count number of unprocessed tasks
         count_unprocessed_sql = (
             f'SELECT COUNT(*) FROM {self.tmp_table} '
             f'WHERE result IS NULL;')
-        count_unprocessed = self.db.execute(count_unprocessed_sql)
+        count_unprocessed = self.db.execute2list(count_unprocessed_sql)
         self.counters.unprocessed_tasks = count_unprocessed[0][0]
     
     def prepare(self):
@@ -152,7 +152,7 @@ class SemanticJoin(SemanticOperator):
         create_table_sql = \
             f'CREATE OR REPLACE TEMPORARY TABLE {self.tmp_table} (' +\
             ', '.join(temp_schema_parts) + ');'
-        self.db.execute(create_table_sql)
+        self.db.execute2list(create_table_sql)
 
         left_alias = self.pred.left_alias
         right_alias = self.pred.right_alias
@@ -180,10 +180,10 @@ class SemanticJoin(SemanticOperator):
             f'FROM {left_filtered_table} {left_alias}, '
             f'{right_filtered_table} {right_alias};'
         )
-        self.db.execute(fill_table_sql)
+        self.db.execute2list(fill_table_sql)
         
         # Initialize task counters        
-        task_count = self.db.execute(
+        task_count = self.db.execute2list(
             f'SELECT COUNT(*) FROM {self.tmp_table};')
         self.counters.nr_unprocessed = task_count[0][0]
 
@@ -395,7 +395,7 @@ class BatchJoin(SemanticJoin):
             f'FROM {self.tmp_table} '
             'WHERE result IS NULL '
             'LIMIT 1;')
-        batch_ids = self.db.execute(find_batch_ids_sql)
+        batch_ids = self.db.execute2list(find_batch_ids_sql)
         if len(batch_ids) == 0:
             return []
         batch_ID_left, batch_ID_right = batch_ids[0]
@@ -409,5 +409,5 @@ class BatchJoin(SemanticJoin):
             f'WHERE batch_ID_left = {batch_ID_left} '
             f'AND batch_ID_right = {batch_ID_right} '
             f'AND result IS NULL;')
-        pairs = self.db.execute(pairs_sql)
+        pairs = self.db.execute2list(pairs_sql)
         return pairs

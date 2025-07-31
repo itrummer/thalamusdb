@@ -132,7 +132,7 @@ class Query():
         """
         predicates = []
         for expr in qualified_sql.find_all(exp.Anonymous):
-            if expr.args.get('this', None) == 'NLfilter':
+            if expr.args.get('this', None).lower() == 'nlfilter':
                 expressions = expr.args.get('expressions', [])
                 qualified_column = expressions[0]
                 column = qualified_column.args['this'].name
@@ -145,7 +145,7 @@ class Query():
                     column=column, condition=condition, 
                     sql=sql)
                 predicates.append(predicate)
-            elif expr.args.get('this', None) == 'NLjoin':
+            elif expr.args.get('this', None).lower() == 'nljoin':
                 expressions = expr.args.get('expressions', [])
                 left_column = expressions[0].this.name
                 right_column = expressions[1].this.name

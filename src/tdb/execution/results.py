@@ -3,6 +3,11 @@ Created on Jul 22, 2025
 
 @author: immanueltrummer
 '''
+import numpy as np
+
+from tdb.ui.util import print_df
+
+
 class PossibleResults():
     """ Contains a set of possible query results.
     
@@ -66,24 +71,19 @@ class AggregateResults(PossibleResults):
         """ Aggregate query results into lower and upper bounds.
         
         Args:
-            results: List of possible query results.
+            results: List of possible query results (pandas data frames).
         
         Returns:
             Tuple of lower and upper bounds for the results.
         """
         assert len(results) > 0, 'No results to aggregate!'
-        # Calculate lower and upper bounds for each aggregate
-        nr_aggregates = len(results[0])
-        lower_bounds = [float('inf')] * nr_aggregates
-        upper_bounds = [float('-inf')] * nr_aggregates
-        for result in results:
-            # print(f'Result: {result}')
-            first_row = result[0]
-            for i, value in enumerate(first_row):
-                if value < lower_bounds[i]:
-                    lower_bounds[i] = value
-                if value > upper_bounds[i]:
-                    upper_bounds[i] = value
+        # Aggregate list of data frames into lower and upper bounds.
+        lower_bounds = results[0].copy()
+        upper_bounds = results[0].copy()
+        for result in results[1:]:
+            # Update lower and upper bounds from data frame
+            lower_bounds = np.minimum(lower_bounds, result)
+            upper_bounds = np.maximum(upper_bounds, result)
         
         return lower_bounds, upper_bounds
     
@@ -93,17 +93,14 @@ class AggregateResults(PossibleResults):
         Returns:
             A numerical error value (zero for exact results).
         """
-        lb_ub_zip = list(zip(self.lower_bounds, self.upper_bounds))
-        assert all(lb <= ub for lb, ub in lb_ub_zip), \
-            'Lower bounds must be less than or equal to upper bounds!'
-        # Compute error as the sum of absolute differences
-        error = sum(abs(lb - ub) for lb, ub in lb_ub_zip)
-        return error
+        return (
+            self.upper_bounds - self.lower_bounds).sum(
+                axis=1).values[0]
     
     def output(self):
         """ Outputs lower and upper bounds on query result. """
-        print('Lower Bounds:', self.lower_bounds)
-        print('Upper Bounds:', self.upper_bounds)
+        print_df(self.lower_bounds, 'Lower Bounds')
+        print_df(self.upper_bounds,'Upper Bounds')
     
     def result(self):
         """ Take the average between lower and upper bounds.
@@ -111,9 +108,7 @@ class AggregateResults(PossibleResults):
         Returns:
             A list with our best guess value for each query aggregate.
         """
-        lb_ub_zip = list(zip(self.lower_bounds, self.upper_bounds))
-        avgs = [(lb + ub) / 2 for lb, ub in lb_ub_zip]
-        return avgs
+        return (self.lower_bounds + self.upper_bounds) / 2
 
 
 class RetrievalResults(PossibleResults):
@@ -143,11 +138,12 @@ class RetrievalResults(PossibleResults):
         Returns:
             Set of common results across all retrieval results.
         """
-        if not results:
-            return set()
-        common_results = set(results[0])
+        assert len(results) > 0, 'No results to intersect!'
+        common_results = results[0]
         for result in results[1:]:
-            common_results.intersection_update(result)
+            common_results = common_results.merge(
+                result, how='inner')
+        
         return common_results
     
     def error(self):
@@ -173,9 +169,9 @@ class RetrievalResults(PossibleResults):
     
     def output(self):
         """ Outputs the intersection of all retrieval results. """
-        print('Rows that Appear in Each Possible Result:')
-        for result in self.intersection:
-            print(result)
+        print_df(
+            self.intersection, 
+            'Rows that Appear in Each Possible Result')
         print(f'Total #certain rows: {len(self.intersection)}')
     
     def result(self):
