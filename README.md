@@ -2,6 +2,10 @@
 
 ThalamusDB is an approximate processing engine supporting SQL queries with semantic operators.
 
+# Documentation
+
+Find the ThalamusDB documentation here: [https://itrummer.github.io/thalamusdb/](https://itrummer.github.io/thalamusdb/).
+
 # Quick Start
 
 Install ThalamusDB using pip:
