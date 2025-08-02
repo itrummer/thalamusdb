@@ -1,7 +1,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 ![PyPI - Version](https://img.shields.io/pypi/v/thalamusdb)
 
-<div align="center" style="background-color: black; width: 100%;">
+<div align="center">
   <img src="https://raw.githubusercontent.com/itrummer/thalamusdb/main/docs/ThalamusDBlogo1.png"  width="150"/>
 </div>
 
