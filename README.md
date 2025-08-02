@@ -2,7 +2,7 @@
 ![PyPI - Version](https://img.shields.io/pypi/v/thalamusdb)
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/itrummer/thalamusdb/main/docs/ThalamusDBlogo1.png"  width="150"/>
+  <img src="https://raw.githubusercontent.com/itrummer/thalamusdb/main/docs/ThalamusDBlogo2.png"  width="150"/>
 </div>
 
 # ThalamusDB: Semantic SQL Queries on Multimodal Data
