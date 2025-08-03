@@ -11,11 +11,7 @@
 
 </div>
 
-ThalamusDB is an approximate processing engine supporting SQL queries extended with semantic operators on multimodal data.
-
-# Documentation
-
-Find the ThalamusDB documentation here: [https://itrummer.github.io/thalamusdb/](https://itrummer.github.io/thalamusdb/).
+ThalamusDB is an approximate processing engine supporting SQL queries extended with semantic operators on multimodal data. Find the full ThalamusDB documentation here: [https://itrummer.github.io/thalamusdb/](https://itrummer.github.io/thalamusdb/).
 
 # Quick Start
 
