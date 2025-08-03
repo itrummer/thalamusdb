@@ -220,16 +220,18 @@ class NestedLoopJoin(SemanticJoin):
                     right_item
                 ]
             }
+            messages = [message]
+            model = self._select_model(messages)
             response = self.llm.chat.completions.create(
-                model='gpt-4o',
-                messages=[message],
+                model=model,
+                messages=messages,
                 max_tokens=1,
                 logit_bias={15: 100, 16: 100},
                 temperature=0.0
             )
             self.update_cost_counters(response)
-            result = int(response.choices[0].message.content)
-            if result == 1:
+            result = str(response.choices[0].message.content)
+            if result == '1':
                 matches.append((left_key, right_key))
         return matches
 
@@ -331,6 +333,8 @@ class BatchJoin(SemanticJoin):
         print(f'Nr of right items: {nr_right_items}')
         # Construct prompt for LLM
         prompt = self._create_prompt(left_items, right_items)
+        messages = [prompt]
+        model = self._select_model(messages)
         # print(prompt)
         # print(f'Left join batch size: {len(left_items)}')
         # print(f'Right join batch size: {len(right_items)}')
@@ -356,9 +360,9 @@ class BatchJoin(SemanticJoin):
         # print(prompt)
         
         response = self.llm.chat.completions.create(
-            model='gpt-4o',
+            model=model,
             # model='gpt-4o-mini',
-            messages=[prompt],
+            messages=messages,
             max_tokens=max_tokens,
             logit_bias=logit_bias,
             temperature=0.0,

@@ -1,0 +1,6 @@
+{
+	"models":[
+		{"id": "gpt-4o", "modalities":["text", "image"], "priority": 10},
+		{"id": "gpt-4o-audio-preview", "modalities":["text", "audio"], "priority": 10}
+	]
+}

@@ -53,16 +53,21 @@ class UnaryFilter(SemanticOperator):
                 item
                 ]
             }
+        messages = [message]
+        model = self._select_model(messages)
+        # print(messages)
+        # print(model)
         response = self.llm.chat.completions.create(
-            model='gpt-4o',
-            messages=[message],
+            model=model,
+            messages=messages,
             max_tokens=1,
             logit_bias={15: 100, 16: 100},
             temperature=0.0
         )
         self.update_cost_counters(response)
-        result = int(response.choices[0].message.content)           
-        return result == 1
+        result = str(response.choices[0].message.content)
+        # print(f'LLM response: {result}')
+        return result == '1'
     
     def _retrieve_items(self, nr_rows, order):
         """ Retrieve items to process next from the filtered table.
