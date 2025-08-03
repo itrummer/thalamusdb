@@ -1,10 +1,17 @@
-# ThalamusDB: Semantic SQL Queries on Multimodal Data
+<div align="center">
+  <img src="https://raw.githubusercontent.com/itrummer/thalamusdb/main/docs/ThalamusDBlogo1.png"  width="200"/>
+</div>
 
-ThalamusDB is an approximate processing engine supporting SQL queries with semantic operators.
+<h1 align="center">ThalamusDB: Semantic Queries on Multimodal Data</h1>
 
-# Documentation
+<div align="center">
+  
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+![PyPI - Version](https://img.shields.io/pypi/v/thalamusdb)
 
-Find the ThalamusDB documentation here: [https://itrummer.github.io/thalamusdb/](https://itrummer.github.io/thalamusdb/).
+</div>
+
+ThalamusDB is an approximate processing engine supporting SQL queries extended with semantic operators on multimodal data. Find the full ThalamusDB documentation here: [https://itrummer.github.io/thalamusdb/](https://itrummer.github.io/thalamusdb/).
 
 # Quick Start
 
