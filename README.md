@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/itrummer/thalamusdb/main/docs/ThalamusDBlogo1.png"  width="200"/>
+  <img src="docs/assets/images/ThalamusDBlogo1.png"  width="200"/>
 </div>
 
 <h1 align="center">ThalamusDB: Semantic Queries on Multimodal Data</h1>
