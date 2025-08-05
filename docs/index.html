@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+	    <meta charset="UTF-8">
+	    <meta name="viewport" content="width=device-width, initial-scale=1">
+	    <title>ThalamusDB</title>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" crossorigin="anonymous">
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap">
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;700&display=swap">
+		<script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js"></script>
+		<link rel="stylesheet" href="assets/styles.css">
+	</head>
+	
+    <body data-bs-spy="scroll" data-bs-target="#navbarNav" tabindex="0">
+		<div class="container-fluid">
+	        <nav class="navbar navbar-expand-lg navbar-dark bg-black fixed-top custom-navbar">
+				<div class="container">
+		            <a class="navbar-brand" href="#">ThalamusDB</a>
+		            <button class="navbar-toggler navbar-toggler-right" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+		                <span class="navbar-toggler-icon"></span>
+		            </button>
+		            <div class="collapse navbar-collapse" id="navbarNav">
+		                <ul class="navbar-nav me-auto">
+		                    <li class="nav-item">
+		                        <a class="nav-link js-scroll-trigger" href="#Home">Home</a>
+		                    </li>
+							<li class="nav-item">
+							    <a class="nav-link js-scroll-trigger" href="#SemanticQueries">Queries</a>
+							</li>
+							<li class="nav-item">
+							    <a class="nav-link js-scroll-trigger" href="#MultimodalData">Data</a>
+							</li>
+							<li class="nav-item">
+							    <a class="nav-link js-scroll-trigger" href="#CostReduction">Costs</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link js-scroll-trigger" href="#Resources">Resources</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link js-scroll-trigger" href="#GetIt">Get It!</a>
+							</li>
+		                </ul>
+		            </div>
+				</div>
+	        </nav>
+		</div>
+		
+		<section class="text-center" id="Home">
+			<img src="assets/ThalamusDBlogo3.png" style="max-height: 500px;">
+			<p class="lead text-center">Semantic query processing on multimodal data</p>
+			<a type="button" class="btn btn-primary" href="#GetIt">Get It!</a>
+		</section>
+				
+		<section class="container text-center page-section" id="SemanticQueries">
+            <h1 class="display-4 mt-4">Semantic Queries</h1>
+			<p class="lead">ThalamusDB processes queries with semantic operators using LLMs.</p>
+			<div class="row">
+				<div class="col-md-2">
+				</div>
+				<div class="col-md-4">
+					<pre class="prettyprint lang-sql text-start">
+SELECT H.pic
+FROM HolidayPictures H, ProfilePictures P
+WHERE P.name in ('Alice', 'Bob')
+AND NLFILTER(H.pic, 
+  'this is a picture of the beach')
+AND NLJOIN(H.pic, P.pic, 
+  'the same person appears in both pictures');
+					</pre>
+				</div>
+				<div class="col-md-4">
+					<p>This query retrieves beach pictures showing Alice or Bob. 
+					It uses <mark>NLFILTER</mark> to filter out beach pictures.
+					<mark>NLJOIN</mark> matches pictures showing the same person.	
+					</p>
+				</div>
+				<div class="col-md-2">
+				</div>
+			</div>
+		</section>
+				
+		<section class="container text-center page-section" id="MultimodalData">
+		    <h1 class="display-4 mt-3">Multimodal Data</h1>
+		    <p class="lead">ThalamusDB processes tables and many unstructured data types.</p>
+			<div class="row">
+				<div class="col-md-2"></div>
+				<div class="col-md-4">
+					<img src="assets/table_icon.png" style="max-height: 150px;">
+					<p>ThalamusDB processes queries on tables, supporting all SQL types.</p>
+				</div>
+				<div class="col-md-4">
+					<img src="assets/text_icon.png" style="max-height: 150px;">
+                    <p>ThalamusDB analyzes text according to natural language instructions.</p>
+				</div>
+				<div class="col-md-2"></div>
+			</div>
+			<div class="row">
+				<div class="col-md-2"></div>
+				<div class="col-md-4">
+					<img src="assets/image_icon.png" style="max-height: 150px;">
+                    <p>ThalamusDB analyzes images in PNG, JPG, and JPEG format via LLMs.</p>
+				</div>
+				<div class="col-md-4">
+					<img src="assets/sound_icon.png" style="max-height: 150px;">
+                    <p>ThalamusDB processes audio data in WAV and MP3 format via LLMs for audio.</p>
+				</div>
+				<div class="col-md-2"></div>
+			</row>
+			<div class="row mt-5">
+				<div class="col-md-2">
+				</div>
+				<div class="col-md-8">
+					<p>Simply store paths to pictures and audio files in text columns. ThalamusDB automatically detects the data type of referenced files and selects a suitable LLM for processing.</p>
+				</div>
+				<div class="col-md-2">
+				</div>
+			</div>
+		</section>
+		
+		<section class="container text-center page-section" id="CostReduction">
+			<h1 class="display-4 mt-3">Reducing Costs</h1>
+			<p class="lead">ThalamusDB reduces costs by approximate processing.</p>
+			<div class="row">
+				<div class="col-md-2"></div>
+				<div class="col-md-4">
+					<img src="assets/cost_icon.png" style="max-height: 150px;">
+					<p>Users can set bounds on per-query processing costs. ThalamusDB generates the best possible result with bounded overheads.</p>
+				</div>
+				<div class="col-md-4">
+					<img src="assets/error_icon.png" style="max-height: 150px;">
+			        <p>Users can set constraints on result error. ThalamusDB tries to minimize overheads while satisfying those constraints.</p>
+				</div>
+				<div class="col-md-2"></div>
+			</row>
+			<div class="row mt-5">
+				<div class="col-md-2">
+				</div>
+				<div class="col-md-8">
+					<p>During processing, ThalamusDB regularly displays partial results, based on processing a part of the entire database.</p>
+				</div>
+				<div class="col-md-2">
+				</div>
+			</div>
+		</section>
+		
+		<section class="container text-center page-section" id="Resources">
+			<h1 class="display-4 mt-3">Resources</h1>
+			<p class="lead">Learn about ThalamusDB in the documentation and papers.</p>
+			<div class="row">
+				<div class="col-md-2"></div>
+				<div class="col-md-4">
+					<img src="assets/ThalamusDBdocuSmall.jpeg" style="max-height: 150px;">
+					<h2 class="mt-3">Documentation</h2>
+					<p>Learn how to use the latest ThalamusDB version by reading the manual <a href="https://itrummer.github.io/thalamusdb/">here</a>.</p>
+				</div>
+				<div class="col-md-4">
+					<img src="assets/ThalamusDBpaperSmall.jpeg" style="max-height: 150px;">
+					<h2 class="mt-3">Research Paper</h2>
+					<p>Dive deep into the technical ideas behind ThalamusDB by reading the latest paper <a href="https://dl.acm.org/doi/10.1145/3654989">here</a>.</p>
+				</div>
+				<div class="col-md-2"></div>
+			</row>
+		</section>
+
+		<section class="container text-center page-section" id="GetIt">
+			<h1 class="display-4 mt-3">Get ThalamusDB</h1>
+			<p class="lead">You can obtain ThalamusDB in multiple ways.</p>
+			<div class="row">
+				<div class="col-md-2"></div>
+				<div class="col-md-4">
+					<h2 class="mt-3">Installation via PIP</h2>
+					<p>Run the following commands in the terminal:</p>
+					<div style="border: 2px solid white;">
+					<pre class="prettyprint lang-bash text-start">
+pip install thalamusdb
+thalamusdb [PathToDuckDBDatabase]
+					</pre></div>
+					<p>These commands install ThalamusDB and start the ThalamusDB console.</p>
+				</div>
+				<div class="col-md-4">
+					<h2 class="mt-3">Download the Code</h2>
+					<p>Run the following commands in the terminal:</p>
+					<div style="border: 2px solid white;">
+					<pre class="prettyprint lang-bash text-start">
+git clone https://github.com/itrummer/thalamusdb
+cd thalamusdb
+pip install -r requirements.txt</pre></div>
+					<p>These commands download the ThalamusDB code and install its requirements.</p>
+				</div>
+
+				</div>
+				<div class="col-md-2"></div>
+			</row>
+		</section>
+
+		<footer class="bg-black text-center text-lg-start mt-5">
+			<div class="text-center text-light p-3">© 2025 Immanuel Trummer</div>
+		</footer>
+    </body>
+</html>
