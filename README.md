@@ -75,7 +75,7 @@ set [Property]=[Value]
 
 # How to Cite
 
-```
+```bibtex
 @article{jo2024thalamusdb,
   title={Thalamusdb: Approximate query processing on multi-modal data},
   author={Jo, Saehan and Trummer, Immanuel},
