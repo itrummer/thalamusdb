@@ -17,15 +17,48 @@ ThalamusDB is an approximate processing engine supporting SQL queries extended w
 
 Install ThalamusDB using pip:
 
-```
+```bash
 pip install thalamusdb
 ```
 
 Run the ThalamusDB console using the following command:
 
-```
+```bash
 thalamusdb [Path to DuckDB database file]
 ```
+
+For instance, try out the example database in this repository:
+
+```bash
+cd data/cars
+thalamusdb cars.db
+```
+
+*Note: You must start `ThalamusDB` from the directory containing the `cars.db` file as the database contains relative paths to image files (see next).*
+The cars database contains a single table with the following schema:
+
+```sql
+cars(description text, pic text);
+```
+
+The `description` column contains a text description of images, and the `pic` column contains the path to the associated image file. Run the following command in the ThalamusDB console to see the picture paths:
+```sql
+select pic from cars;
+```
+
+You will see relative paths of JPEG images, located in the `images` sub-folder. Now, you can try semantic queries such as the following:
+
+```sql
+select count(*) from cars where nlfilter(pic, 'the car in the picture is red');
+```
+
+After less than a minute, ThalamusDB should produce the correct answer (1). You may try more complex queries that require a certain degree of commonsense knowledge to evaluate, e.g.:
+
+```sql
+select count(*) from cars where nlfilter(pic, 'the car in the picture is from a German manufacturer');
+```
+
+ThalamusDB supports other semantic operators beyond simple filters and performs semantic analysis on audio files as well as text. Consult the ThalamusDB documentation for more details.
 
 # Data Model
 
