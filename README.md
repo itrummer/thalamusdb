@@ -63,9 +63,9 @@ ThalamusDB supports other semantic operators beyond simple filters and performs 
 
 # Data Model
 
-ThalamusDB operates on a standard DuckDB database. ThalamusDB supports semantic operators on two types of unstructured data: text and images. 
+ThalamusDB operates on a standard DuckDB database. ThalamusDB supports semantic operators on three types of unstructured data: text, images, and sound files. 
 
-To represent images, create a column of SQL type `text` in your table and store paths to images. ThalamusDB automatically recognizes the most common image file formats (PNG, JPEG, JPG) and treats table cells containing paths to such files as images.
+To represent images, create a column of SQL type `text` in your table and store paths to images. ThalamusDB automatically recognizes the most common image file formats (PNG, JPEG, JPG) and treats table cells containing paths to such files as images. Similarly, to represent audio data, include paths to audio files (WAV or MP3 files) in a `text` column.
 
 # Query Language
 
