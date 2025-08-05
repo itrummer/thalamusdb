@@ -27,9 +27,10 @@ Run the ThalamusDB console using the following command:
 thalamusdb [Path to DuckDB database file]
 ```
 
-For instance, try out the example database in this repository (download this repository first):
+For instance, try out the example database in this repository:
 
 ```bash
+git clone https://github.com/itrummer/thalamusdb
 cd data/cars
 thalamusdb cars.db
 ```
