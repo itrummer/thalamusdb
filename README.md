@@ -39,7 +39,7 @@ thalamusdb cars.db
 The cars database contains a single table with the following schema:
 
 ```sql
-cars(description text, pic text);
+cars(description text, pic text)
 ```
 
 The `description` column contains a text description of images, and the `pic` column contains the path to the associated image file. Run the following command in the ThalamusDB console to see the picture paths:
