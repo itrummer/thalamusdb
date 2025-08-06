@@ -7,6 +7,18 @@ from rich.console import Console
 from rich.table import Table
 
 
+def df2set(df):
+    """ Converts a pandas data frame to a set of tuples.
+    
+    Args:
+        df: a pandas data frame.
+    
+    Returns:
+        A set of tuples representing the rows of the data frame.
+    """
+    return set(tuple(row) for row in df.values)
+
+
 def print_df(df, title='Query Result'):
     """ Prints a pandas data frame as a table.
     

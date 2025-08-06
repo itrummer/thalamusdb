@@ -4,8 +4,9 @@ Created on Jul 22, 2025
 @author: immanueltrummer
 '''
 import numpy as np
+import pandas as pd
 
-from tdb.ui.util import print_df
+from tdb.ui.util import df2set, print_df
 
 
 class PossibleResults():
@@ -139,12 +140,14 @@ class RetrievalResults(PossibleResults):
             Set of common results across all retrieval results.
         """
         assert len(results) > 0, 'No results to intersect!'
-        common_results = results[0]
+        columns = results[0].columns
+        common_results = df2set(results[0])
         for result in results[1:]:
-            common_results = common_results.merge(
-                result, how='inner')
+            next_result = df2set(result)
+            common_results = common_results.intersection(
+                next_result)
         
-        return common_results
+        return pd.DataFrame(common_results, columns=columns)
     
     def error(self):
         """ Computes the error metric for the retrieval results.

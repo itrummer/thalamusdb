@@ -4,14 +4,16 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'ThalamusDB'
-version = '0.1.8'
+version = '0.1.9'
 description = 'ThalamusDB: Semantic Query Processing on Multimodal Data'
 dependencies = [
     'duckdb==1.3.2',
     'openai==1.95.1',
     'pandas==2.3.1',
     'sqlglot==27.0.0',
-    'rich==13.9.4']
+    'rich==13.9.4',
+    'pytest==8.4.1',
+    'pytest-mock==3.14']
 requires-python = '>=3.12'
 authors=[
 	{name = 'Immanuel Trummer'},
