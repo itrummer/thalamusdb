@@ -35,6 +35,10 @@
 							    <a class="nav-link js-scroll-trigger" href="#CostReduction">Costs</a>
 							</li>
 							<li class="nav-item">
+							    <a class="nav-link js-scroll-trigger" href="#Comparison">Comparison</a>
+							</li>
+                            
+							<li class="nav-item">
 								<a class="nav-link js-scroll-trigger" href="#Resources">Resources</a>
 							</li>
 							<li class="nav-item">
@@ -46,8 +50,8 @@
 	        </nav>
 		</div>
 		
-		<section class="text-center" id="Home">
-			<img src="assets/images/large/ThalamusDBlogo3.png" style="max-height: 500px;">
+		<section class="container text-center" id="Home">
+			<img src="assets/images/large/ThalamusDBlogo3.png" class="img-fluid" style="max-height: 500px;">
 			<p class="lead text-center">Semantic query processing on multimodal data</p>
 			<a type="button" class="btn btn-primary" href="#GetIt">Get It!</a>
 		</section>
@@ -141,6 +145,53 @@ AND NLJOIN(H.pic, P.pic,
 				</div>
 				<div class="col-md-2">
 				</div>
+			</div>
+		</section>
+		
+		<section class="container text-center page-section" id="Comparison">
+            <h1 class="display-4 mt-3">Comparison to Other Engines</h1>
+			<div class="row">
+			    <div class="col-md-2"></div>
+                <div class="col-md-8">
+					<p class="lead">ThalamusDB differs by its focus on approximate query processing. It processes semantic operators on data subsets to derive deterministic bounds on query aggregates and partial query results. A comparison by data types and interface (as of 8/4/25):</p>
+				</div>
+				<div class="col-md-2"></div>
+			</div>
+			<div class="row">
+				<div class="col-md-2"></div>
+				<div class="col-md-8">
+					<table class="table table-dark table-striped table-bordered">
+					  <thead>
+					    <tr>
+					      <th scope="col">Criterion</th>
+						  <th scope="col">ThalamusDB</th>
+					      <th scope="col">LOTUS</th>
+					      <th scope="col">Palimpzest</th>
+					      <th scope="col">FlockMTL</th>
+						  <th scope="col">CAESURA</th>
+					    </tr>
+					  </thead>
+					  <tbody>
+					    <tr>
+					      <th>Data Types</th>
+					      <td>Text, Table, Image, Sound</td>
+					      <td>Text, Table, Image</td>
+					      <td>Text, Table, Image</td>
+						  <td>Text, Table</td>
+						  <td>Text, Table, Image</td>
+					    </tr>
+						<tr>
+						  <th>Interface</th>
+						  <td>Semantic SQL</td>
+						  <td>Python</td>
+						  <td>Semantic SQL</td>
+						  <td>Semantic SQL</td>
+						  <td>Natural Language</td>
+						</tr>
+					</tbody>
+					</table>
+				</div>
+				<div class="col-md-2"></div>
 			</div>
 		</section>
 		
