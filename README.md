@@ -120,4 +120,11 @@ set [Property]=[Value]
   year={2024},
   publisher={ACM New York, NY, USA}
 }
+@inproceedings{jo2023demonstration,
+  title={Demonstration of thalamusdb: answering complex sql queries with natural language predicates on multi-modal data},
+  author={Jo, Saehan and Trummer, Immanuel},
+  booktitle={Companion of the 2023 International Conference on Management of Data},
+  pages={179--182},
+  year={2023}
+}
 ```
