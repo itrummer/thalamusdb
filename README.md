@@ -25,7 +25,13 @@ Install ThalamusDB using pip:
 pip install thalamusdb
 ```
 
-Run the ThalamusDB console using the following command:
+You need an OpenAI API key to use ThalamusDB. This key must be stored in the environment variable `OPENAI_API_KEY`. On Linux platforms, you can set the variable using the following command:
+
+```bash
+export OPENAI_API_KEY=[Your OpenAI API Key]
+```
+
+Now you can run the ThalamusDB console using the following command:
 
 ```bash
 thalamusdb [Path to DuckDB database file]
