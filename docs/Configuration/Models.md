@@ -5,6 +5,8 @@ parent: Configuration Options
 
 # Model Configuration
 
+*Note: to access the model configuration files, users need to clone the code repository (installation via `pip` is insufficient).*
+
 During query processing, ThalamusDB dynamically selects the most suitable language model for each semantic operator. Currently, only models by OpenAI are supported. Users can configure the way in which ThalamusDB selects models. The associated configuration file is located at `config/models.json`. This is the default content of the file:
 
 ```json
