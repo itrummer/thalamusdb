@@ -34,12 +34,26 @@ class SemanticOperator:
         src_path = Path(__file__).parent.parent.parent.parent
         model_path = src_path / 'config' / 'models.json'
         if not model_path.exists():
-            raise FileNotFoundError(
-                f'Model configuration file not found at {model_path}')
-        with open(model_path) as file:
-            # Load model configuration from JSON file
-            self.models = json.load(file)
-            # print(self.models)
+            # Use default settings
+            self.models = {
+                "models":[
+                    {
+                        "id": "gpt-4o", 
+                        "modalities":["text", "image"], 
+                        "priority": 10},
+                    {
+                        "id": "gpt-4o-audio-preview", 
+                        "modalities":["text", "audio"], 
+                        "priority": 10}
+                ]
+            }
+            # raise FileNotFoundError(
+            #     f'Model configuration file not found at {model_path}')
+        else:
+            with open(model_path) as file:
+                # Load model configuration from JSON file
+                self.models = json.load(file)
+                # print(self.models)
 
     def _encode_item(self, item_text):
         """ Encodes an item as message for LLM processing.
