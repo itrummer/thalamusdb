@@ -9,14 +9,20 @@ nav_order: 0
 
 ThalamusDB can be installed easily via `pip` from the console:
 
-```
+```bash
 pip install thalamusdb
 ```
 
 Alternatively, download the code of ThalamusDB by cloning the corresponding GitHub repository:
 
-```
+```bash
 git clone https://github.com/itrummer/thalamusdb
+```
+
+Set the environment variable `OPENAI_API_KEY` to your OpenAI API key. For instance, on Linux platforms, you can set this variable using the following command:
+
+```bash
+export OPENAI_API_KEY=[Your OpenAI API Key]
 ```
 
 ## Using ThalamusDB

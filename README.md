@@ -13,6 +13,10 @@
 
 ThalamusDB is an approximate processing engine supporting SQL queries extended with semantic operators on multimodal data. Find the full ThalamusDB documentation here: [https://itrummer.github.io/thalamusdb/](https://itrummer.github.io/thalamusdb/).
 
+# Try It on Google Colab
+
+To get a first impression of ThalamusDB, try it on Google Colab [here](https://colab.research.google.com/drive/1CrjIn3tP-RMz37T6mXfU9YZdb1y-9guq?usp=sharing). Execute the code cell, enter your OpenAI API key when asked, then enter your queries in the ThalamusDB console.
+
 # Quick Start
 
 Install ThalamusDB using pip:
@@ -21,7 +25,13 @@ Install ThalamusDB using pip:
 pip install thalamusdb
 ```
 
-Run the ThalamusDB console using the following command:
+You need an OpenAI API key to use ThalamusDB. This key must be stored in the environment variable `OPENAI_API_KEY`. On Linux platforms, you can set the variable using the following command:
+
+```bash
+export OPENAI_API_KEY=[Your OpenAI API Key]
+```
+
+Now you can run the ThalamusDB console using the following command:
 
 ```bash
 thalamusdb [Path to DuckDB database file]
