@@ -136,8 +136,8 @@ class Query():
                 expressions = expr.args.get('expressions', [])
                 qualified_column = expressions[0]
                 column = qualified_column.args['this'].name
-                table = qualified_column.args['table'].name
-                alias = alias2table[table]
+                alias = qualified_column.args['table'].name
+                table = alias2table[alias]
                 condition = expressions[1].this
                 sql = expr.sql()
                 predicate = UnaryPredicate(
@@ -226,7 +226,7 @@ class Query():
                     return left_table
                 
         elif isinstance(expression, exp.Unary):
-            referenced_cols = expression.find_all(exp.Column)
+            referenced_cols = list(expression.find_all(exp.Column))
             if len(referenced_cols) == 1:
                 referenced_col = referenced_cols[0]
                 alias = referenced_col.table
