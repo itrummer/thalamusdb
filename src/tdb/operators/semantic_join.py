@@ -5,7 +5,7 @@ Created on Jul 20, 2025
 '''
 import traceback
 
-from sqlglot import exp
+from litellm import completion
 from tdb.operators.semantic_operator import SemanticOperator
 
 
@@ -222,11 +222,11 @@ class NestedLoopJoin(SemanticJoin):
             }
             messages = [message]
             model = self._select_model(messages)
-            response = self.llm.chat.completions.create(
+            response = completion(
                 model=model,
                 messages=messages,
                 max_tokens=1,
-                logit_bias={15: 100, 16: 100},
+                # logit_bias={15: 100, 16: 100},
                 temperature=0.0
             )
             self.update_cost_counters(response)
@@ -339,16 +339,7 @@ class BatchJoin(SemanticJoin):
         # print(f'Left join batch size: {len(left_items)}')
         # print(f'Right join batch size: {len(right_items)}')
         # Create logit bias toward numbers, hyphens, and "L"/"R"
-        logit_bias = {}
-        for i in range(10):
-            logit_bias[i + 15] = 100
-        
-        logit_bias[11] = 100 # ,
-        logit_bias[12] = 100 # -
-        logit_bias[13] = 100 # .
-        logit_bias[43] = 100 # L
-        logit_bias[49] = 100 # R
-        
+        logit_bias = self._gpt_join_bias(model)
         # Determine maximal number of tokens
         # print(prompt)
         max_tokens = 1 + len(left_items) * len(right_items) * 10
@@ -359,9 +350,8 @@ class BatchJoin(SemanticJoin):
         # print(f'logit_bias: {logit_bias}')
         # print(prompt)
         
-        response = self.llm.chat.completions.create(
+        response = completion(
             model=model,
-            # model='gpt-4o-mini',
             messages=messages,
             max_tokens=max_tokens,
             logit_bias=logit_bias,
@@ -415,3 +405,25 @@ class BatchJoin(SemanticJoin):
             f'AND result IS NULL;')
         pairs = self.db.execute2list(pairs_sql)
         return pairs
+    
+    def _gpt_join_bias(self, model):
+        """ Add logit bias on output tokens for GPT models.
+        
+        Args:
+            model (str): Name of the model to use.
+        
+        Returns:
+            dict: Logit bias to encourage specific outputs for GPT models.
+        """
+        logit_bias = {}
+        if self._uses_gpt4_tokenizer(model):
+            for i in range(10):
+                logit_bias[i + 15] = 100
+            
+            logit_bias[11] = 100 # ,
+            logit_bias[12] = 100 # -
+            logit_bias[13] = 100 # .
+            logit_bias[43] = 100 # L
+            logit_bias[49] = 100 # R
+        
+        return logit_bias

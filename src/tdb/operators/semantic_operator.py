@@ -7,7 +7,6 @@ import base64
 import json
 
 from tdb.execution.counters import TdbCounters
-from openai import OpenAI
 from pathlib import Path
 
 
@@ -30,7 +29,6 @@ class SemanticOperator:
         self.operator_ID = operator_ID
         self.batch_size = batch_size
         self.counters = TdbCounters()
-        self.llm = OpenAI()
         src_path = Path(__file__).parent.parent.parent.parent
         model_path = src_path / 'config' / 'models.json'
         if not model_path.exists():
@@ -138,6 +136,17 @@ class SemanticOperator:
                 f'the given data types ({data_types})!')
         eligible_models.sort(key=lambda x: x['priority'], reverse=True)
         return eligible_models[0]['id']
+    
+    def _uses_gpt4_tokenizer(self, model):
+        """ Checks if the model uses the GPT-4 tokenizer.
+        
+        Args:
+            model (str): Name of the model to check.
+        
+        Returns:
+            bool: True if the model uses the GPT-4 tokenizer.
+        """
+        return 'gpt-4' in model or 'gpt-3.5' in model
     
     def execute(self, order):
         """ Execute operator on a data batch.

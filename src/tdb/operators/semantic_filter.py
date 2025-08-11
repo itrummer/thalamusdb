@@ -3,6 +3,7 @@ Created on Jul 16, 2025
 
 @author: immanueltrummer
 '''
+from litellm import completion
 from tdb.operators.semantic_operator import SemanticOperator
 
 
@@ -55,19 +56,32 @@ class UnaryFilter(SemanticOperator):
             }
         messages = [message]
         model = self._select_model(messages)
-        # print(messages)
-        # print(model)
-        response = self.llm.chat.completions.create(
+        logit_bias = self._gpt_filter_bias(model)
+        response = completion(
             model=model,
             messages=messages,
             max_tokens=1,
-            logit_bias={15: 100, 16: 100},
+            logit_bias=logit_bias,
             temperature=0.0
         )
         self.update_cost_counters(response)
         result = str(response.choices[0].message.content)
         # print(f'LLM response: {result}')
         return result == '1'
+    
+    def _gpt_filter_bias(self, model):
+        """ Add logit bias on output tokens for GPT models.
+        
+        Args:
+            model (str): Name of the model to use.
+        
+        Returns:
+            dict: Logit bias to encourage 0/1 outputs for GPT models.
+        """
+        if self._uses_gpt4_tokenizer(model):
+            return {15: 100, 16: 100}
+        else:
+            return {}
     
     def _retrieve_items(self, nr_rows, order):
         """ Retrieve items to process next from the filtered table.
