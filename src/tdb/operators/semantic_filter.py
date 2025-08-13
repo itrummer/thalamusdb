@@ -3,8 +3,27 @@ Created on Jul 16, 2025
 
 @author: immanueltrummer
 '''
+from multiprocessing import Pool
 from litellm import completion
 from tdb.operators.semantic_operator import SemanticOperator
+
+
+def _evaluate_predicate(item_text, messages, model):
+    """ Evaluate the predicate for a single item.
+    
+    Args:
+        item_text (str): Text representation of the item.
+        messages (list): List of input messages for the LLM.
+        model (str): Name of the model to use.
+    
+    Returns:
+        tuple: (item_text, LLM response).
+    """
+    response = completion(
+        model=model,
+        messages=messages
+    )
+    return item_text, response
 
 
 class UnaryFilter(SemanticOperator):
@@ -30,14 +49,59 @@ class UnaryFilter(SemanticOperator):
         self.filter_sql = predicate.sql
         self.tmp_table = f'ThalamusDB_{self.operator_ID}'
     
-    def _evaluate_predicate(self, item_text):
-        """ Evaluates the filter condition using the LLM.
+    def _evaluate_predicate_parallel(self, item_texts):
+        """ Evaluates the filter conditions using the LLM in parallel.
         
         Args:
-            item_text (str): Text of the item to evaluate.
+            item_texts: List of items to evaluate.
         
         Returns:
-            True iff the item satisfies the filter condition.
+            List of tuples (item_text, result) where result is True or False.
+        """
+        # Prepare model inputs for each item
+        inputs = [[self._message(item_text)] for item_text in item_texts]
+        # Select models for each item
+        models = [self._select_model(i) for i in inputs]
+        # Combine item texts, messages, and models for parallel processing
+        items_to_process = list(zip(item_texts, inputs, models))
+        # Use multiprocessing to evaluate predicates in parallel
+        with Pool() as pool:
+            item_texts_responses = pool.starmap(
+                _evaluate_predicate, items_to_process)
+        # Update cost counters
+        for _, response in item_texts_responses:
+            self.update_cost_counters(response)
+        # Extract evaluation results
+        results = []
+        for item_text, response in item_texts_responses:
+            result = str(response.choices[0].message.content)
+            # print(result)
+            results.append((item_text, result == '1'))
+        
+        return results
+    
+    def _gpt_filter_bias(self, model):
+        """ Add logit bias on output tokens for GPT models.
+        
+        Args:
+            model (str): Name of the model to use.
+        
+        Returns:
+            dict: Logit bias to encourage 0/1 outputs for GPT models.
+        """
+        if self._uses_gpt4_tokenizer(model):
+            return {15: 100, 16: 100}
+        else:
+            return {}
+    
+    def _message(self, item_text):
+        """ Create a message for the LLM describing the evaluation task.
+        
+        Args:
+            item_text (str): Text representation of the item.
+        
+        Returns:
+            dict: Message for the LLM.
         """
         item = self._encode_item(item_text)
         question = (
@@ -54,34 +118,7 @@ class UnaryFilter(SemanticOperator):
                 item
                 ]
             }
-        messages = [message]
-        model = self._select_model(messages)
-        logit_bias = self._gpt_filter_bias(model)
-        response = completion(
-            model=model,
-            messages=messages,
-            max_tokens=1,
-            logit_bias=logit_bias,
-            temperature=0.0
-        )
-        self.update_cost_counters(response)
-        result = str(response.choices[0].message.content)
-        # print(f'LLM response: {result}')
-        return result == '1'
-    
-    def _gpt_filter_bias(self, model):
-        """ Add logit bias on output tokens for GPT models.
-        
-        Args:
-            model (str): Name of the model to use.
-        
-        Returns:
-            dict: Logit bias to encourage 0/1 outputs for GPT models.
-        """
-        if self._uses_gpt4_tokenizer(model):
-            return {15: 100, 16: 100}
-        else:
-            return {}
+        return message
     
     def _retrieve_items(self, nr_rows, order):
         """ Retrieve items to process next from the filtered table.
@@ -146,12 +183,12 @@ class UnaryFilter(SemanticOperator):
             order (tuple): None or tuple (column, ascending flag).
         """
         # Retrieve nr_rows in sort order from temporary table
-        items_to_process = self._retrieve_items(
-            self.batch_size, order)
-        # Process each row with LLM
-        for item_text in items_to_process:
-            result = self._evaluate_predicate(item_text)
-            # Update temporary table with results
+        items_to_process = self._retrieve_items(self.batch_size, order)
+        # Evaluate predicates on different items in parallel
+        results = self._evaluate_predicate_parallel(items_to_process)
+        # Update results in the temporary table
+        for item_text, result in results:
+            # Escape single quotes in item text for SQL
             escaped_item_text = item_text.replace("'", "''")
             update_sql = (
                 f'UPDATE {self.tmp_table} '
@@ -159,7 +196,6 @@ class UnaryFilter(SemanticOperator):
                 f'simulated = {result} '
                 f"WHERE base_{self.filtered_column} = '{escaped_item_text}'")
             self.db.execute2list(update_sql)
-        
         # Update task counters
         self.counters.processed_tasks += len(items_to_process)
         self.counters.unprocessed_tasks -= len(items_to_process)

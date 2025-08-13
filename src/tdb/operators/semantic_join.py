@@ -224,10 +224,7 @@ class NestedLoopJoin(SemanticJoin):
             model = self._select_model(messages)
             response = completion(
                 model=model,
-                messages=messages,
-                max_tokens=1,
-                # logit_bias={15: 100, 16: 100},
-                temperature=0.0
+                messages=messages
             )
             self.update_cost_counters(response)
             result = str(response.choices[0].message.content)
@@ -339,23 +336,10 @@ class BatchJoin(SemanticJoin):
         # print(f'Left join batch size: {len(left_items)}')
         # print(f'Right join batch size: {len(right_items)}')
         # Create logit bias toward numbers, hyphens, and "L"/"R"
-        logit_bias = self._gpt_join_bias(model)
-        # Determine maximal number of tokens
-        # print(prompt)
-        max_tokens = 1 + len(left_items) * len(right_items) * 10
-        
-        # print(f'max_tokens: {max_tokens}')
-        # print(f'Left keys: {len(left_keys)}')
-        # print(f'Right keys: {len(right_keys)}')
-        # print(f'logit_bias: {logit_bias}')
-        # print(prompt)
         
         response = completion(
             model=model,
             messages=messages,
-            max_tokens=max_tokens,
-            logit_bias=logit_bias,
-            temperature=0.0,
             stop=['.']
         )
         self.update_cost_counters(response)

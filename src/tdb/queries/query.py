@@ -63,6 +63,7 @@ class Query():
         """
         schema = db.schema()
         ast = sqlglot.parse_one(sql)
+        limit, ast = self._extract_int_limit(ast)
         qualified_exp = qualify(ast, schema=schema)
         alias2table = self._alias2table(qualified_exp)
         scope = Scope(qualified_exp)
@@ -70,6 +71,7 @@ class Query():
             self._collect_semantic_predicates(
             qualified_exp, alias2table)
         
+        self.limit = limit
         self.qualified_exp = qualified_exp
         self.qualified_sql = qualified_exp.sql()
         self.scope = scope
@@ -200,6 +202,27 @@ class Query():
         
         return alias2preds
     
+    def _extract_int_limit(self, ast):
+        """ Extracts LIMIT clause if it is an integer.
+        
+        Args:
+            ast (exp.Expression): SQL expression to analyze.
+        
+        Returns:
+            Limit value or None, AST possibly with LIMIT clause removed. 
+        """
+        if 'limit' in ast.args:
+            limit = ast.args['limit']
+            if isinstance(limit, exp.Limit):
+                limit_exp = ast.args['limit'].expression
+                if isinstance(limit_exp, exp.Literal):
+                    limit_val = limit_exp.this
+                    if limit_val.isdecimal():
+                        del ast.args['limit']
+                        return int(limit_val), ast
+
+        return float('inf'), ast
+    
     def _get_unary_alias(self, expression):
         """ Return associated alias if this is a unary predicate.
         
@@ -238,10 +261,10 @@ if __name__ == "__main__":
     from tdb.data.relational import Database
     # db = Database('elephants.db')
     # query = Query(db, "SELECT NLfilter(ImagePath, 'Is it an elephant?') FROM images")
-    db = Database('detective3.db')
+    db = Database('detective.db')
     # query = Query(db, "SELECT NLfilter(ImagePath, 'Is it an elephant?') FROM images"
     #query = Query(db, "select S.FaceImage, M.FaceImage from ShopCams S, ShopCams M, TrafficCams where NLjoin(S.faceimage, M.faceimage, 'The pictures show the same person') and S.CameraLocation = 'Starbucks' and M.CameraLocation = 'McDonalds' and EXISTS (select * from shopcams as SC) and S.CameraLocation = 'test' and S.CameraLocation = S.FaceImage;")
-    query = Query(db, "select D.ownername from DMV D, Evidence E where D.carmodel = E.cardescription and exists (select * from ShopCams S where S.cameralocation = 'Starbucks' and S.person = D.ownername) and exists (select * from ShopCams S where S.cameralocation = 'McDonalds' and S.person = D.ownername) and exists (select * from ShopCams S where S.cameralocation = 'Deli' and S.person = D.ownername);")
+    query = Query(db, "select D.ownername from DMV D LIMIT (10-1);")
     print(query.qualified_sql)
     from sqlglot.optimizer.eliminate_subqueries import eliminate_subqueries
     eliminate_subqueries(query.qualified_exp)

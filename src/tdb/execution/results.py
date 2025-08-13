@@ -161,12 +161,15 @@ class RetrievalResults(PossibleResults):
         """
         if not self.results:
             return 0.0
-        max_rows = max(len(result) for result in self.results)
+        max_rows = max(len(df2set(result)) for result in self.results)
         intersection_rows = len(self.intersection)
         if max_rows == intersection_rows:
             return 0.0
         if intersection_rows == 0:
             return float('inf')
+        # print('Results:')
+        # for result in self.results:
+        #     print(result)
         error = (max_rows - intersection_rows) / intersection_rows - 1
         return error
     

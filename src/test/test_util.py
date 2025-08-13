@@ -42,7 +42,10 @@ def set_mock_filter(mocker, default_value):
         mocker: Mocker fixture for creating mock objects.
         default_value: The value to return when the filter is applied.
     """
-    mocker.patch(
-        'tdb.operators.semantic_filter.UnaryFilter._evaluate_predicate',
-        lambda self, _: default_value
-    )
+    if default_value:
+        mock_eval = lambda self, item_texts: [(i, True) for i in item_texts]
+    else:
+        mock_eval = lambda self, item_texts: [(i, False) for i in item_texts]
+    
+    target = 'tdb.operators.semantic_filter.UnaryFilter._evaluate_predicate_parallel'
+    mocker.patch(target, mock_eval)

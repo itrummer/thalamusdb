@@ -176,6 +176,12 @@ class ExecutionEngine:
                 aggregate_results = AggregateResults(results)
             else:
                 aggregate_results = RetrievalResults(results)
+                nr_certain_rows = len(aggregate_results.intersection)
+                if nr_certain_rows >= query.limit:
+                    console.print(
+                        Rule('Query Limit Reached'),
+                        style='bold red')
+                    break
             
             console.print(Rule('Query Progress Updates'))
             aggregate_results.output()

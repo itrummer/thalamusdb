@@ -38,6 +38,28 @@ def test_retrieval(mocker):
     assert counters.unprocessed_tasks == 0
 
 
+def test_limit(mocker):
+    """ Test retrieval queries with LIMIT clauses.
+    
+    Args:
+        mocker: mocker fixture for creating mock objects.
+    """
+    query_str = "SELECT * FROM cars WHERE NLfilter(pic, 'a car') LIMIT 2;"
+    query = Query(cars_db, query_str)
+
+    # Should return at least two tuples
+    set_mock_filter(mocker, True)
+    constraints = Constraints()
+    engine = ExecutionEngine(cars_db)
+    result, _ = engine.run(query, constraints)
+    assert len(result) >= 2
+    
+    # Should return no tuples if predicate evaluates to False
+    set_mock_filter(mocker, False)
+    result, _ = engine.run(query, constraints)
+    assert len(result) == 0
+
+
 def test_aggregation(mocker):
     """ Tests query execution engine for aggregation queries.
     
