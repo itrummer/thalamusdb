@@ -62,11 +62,13 @@ class SemanticOperator:
         Returns:
             dict: Encoded item as a dictionary with 'role' and 'content'.
         """
-        image_extensions = ['.png', '.jpg', '.jpeg']
+        file_path = Path(item_text)
+        if not file_path.is_absolute():
+            file_path = Path(self.db.db_path).parent / file_path
         if any(
             item_text.endswith(extension) \
-            for extension in image_extensions):
-            with open(item_text, 'rb') as image_file:
+            for extension in ['.png', '.jpg', '.jpeg']):
+            with file_path.open('rb') as image_file:
                 image = base64.b64encode(
                     image_file.read()).decode('utf-8')
                 
@@ -80,7 +82,7 @@ class SemanticOperator:
         elif any(
             item_text.endswith(extension) \
             for extension in ['.wav', '.mp3']):
-            with open(item_text, 'rb') as audio_file:
+            with file_path.open('rb') as audio_file:
                 audio = base64.b64encode(
                     audio_file.read()).decode('utf-8')
             
@@ -137,14 +139,14 @@ class SemanticOperator:
         eligible_models.sort(key=lambda x: x['priority'], reverse=True)
         return eligible_models[0]['id']
     
-    def _uses_gpt4_tokenizer(self, model):
-        """ Checks if the model uses the GPT-4 tokenizer.
+    def _gpt4_style_model(self, model):
+        """ Checks if the model uses the GPT-4 tokenizer and token limits.
         
         Args:
             model (str): Name of the model to check.
         
         Returns:
-            bool: True if the model uses the GPT-4 tokenizer.
+            bool: can use the same arguments for completions as for GPT-4?
         """
         return 'gpt-4' in model or 'gpt-3.5' in model
     

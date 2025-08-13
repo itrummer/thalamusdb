@@ -326,8 +326,8 @@ class BatchJoin(SemanticJoin):
         nr_right_items = len(right_items)
         if nr_left_items == 0 or nr_right_items == 0:
             return []
-        print(f'Nr of left items: {nr_left_items}, ')
-        print(f'Nr of right items: {nr_right_items}')
+        # print(f'Nr of left items: {nr_left_items}, ')
+        # print(f'Nr of right items: {nr_right_items}')
         # Construct prompt for LLM
         prompt = self._create_prompt(left_items, right_items)
         messages = [prompt]
@@ -400,7 +400,7 @@ class BatchJoin(SemanticJoin):
             dict: Logit bias to encourage specific outputs for GPT models.
         """
         logit_bias = {}
-        if self._uses_gpt4_tokenizer(model):
+        if self.gpt4_style_model(model):
             for i in range(10):
                 logit_bias[i + 15] = 100
             

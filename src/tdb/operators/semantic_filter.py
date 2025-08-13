@@ -3,26 +3,23 @@ Created on Jul 16, 2025
 
 @author: immanueltrummer
 '''
-from multiprocessing import Pool
+import multiprocessing as mp
+
 from litellm import completion
 from tdb.operators.semantic_operator import SemanticOperator
 
 
-def _evaluate_predicate(item_text, messages, model):
-    """ Evaluate the predicate for a single item.
+def _filter_completion_wrapper(item_text, kwargs):
+    """ Invoke completion function with given keyword arguments.
     
     Args:
         item_text (str): Text representation of the item.
-        messages (list): List of input messages for the LLM.
-        model (str): Name of the model to use.
+        kwargs (dict): Keyword arguments for the completion function.
     
     Returns:
         tuple: (item_text, LLM response).
     """
-    response = completion(
-        model=model,
-        messages=messages
-    )
+    response = completion(**kwargs)
     return item_text, response
 
 
@@ -58,16 +55,33 @@ class UnaryFilter(SemanticOperator):
         Returns:
             List of tuples (item_text, result) where result is True or False.
         """
-        # Prepare model inputs for each item
-        inputs = [[self._message(item_text)] for item_text in item_texts]
-        # Select models for each item
-        models = [self._select_model(i) for i in inputs]
-        # Combine item texts, messages, and models for parallel processing
-        items_to_process = list(zip(item_texts, inputs, models))
+        # Prepare keyword inputs for completion function
+        inputs = []
+        for item_text in item_texts:
+            messages = [self._message(item_text)]
+            model = self._select_model(messages)
+            kwargs = {
+                'messages': messages,
+                'model': model,
+            }
+            # Add logit bias and token limitation for GPT-3.5/4 models
+            if self._gpt4_style_model(model):
+                kwargs['logit_bias'] = self._gpt_filter_bias(model)
+                kwargs['max_tokens'] = 1
+            
+            inputs.append((item_text, kwargs))
+
         # Use multiprocessing to evaluate predicates in parallel
-        with Pool() as pool:
+        
+        with mp.Pool() as pool:
             item_texts_responses = pool.starmap(
-                _evaluate_predicate, items_to_process)
+                _filter_completion_wrapper, inputs)
+        
+        # item_texts_responses = []
+        # for one_input in inputs:
+        #     output = _filter_completion_wrapper(*one_input)
+        #     item_texts_responses.append(output)
+            
         # Update cost counters
         for _, response in item_texts_responses:
             self.update_cost_counters(response)
@@ -89,7 +103,7 @@ class UnaryFilter(SemanticOperator):
         Returns:
             dict: Logit bias to encourage 0/1 outputs for GPT models.
         """
-        if self._uses_gpt4_tokenizer(model):
+        if self._gpt4_style_model(model):
             return {15: 100, 16: 100}
         else:
             return {}

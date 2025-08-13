@@ -16,6 +16,7 @@ class Database():
         Args:
             database_name (str): Name of the database file or ':memory:'.
         """
+        self.db_path = database_name
         self.con = duckdb.connect(database=database_name)
     
     def columns(self, table_name):
