@@ -170,7 +170,7 @@ class RetrievalResults(PossibleResults):
         # print('Results:')
         # for result in self.results:
         #     print(result)
-        error = (max_rows - intersection_rows) / intersection_rows - 1
+        error = max_rows / intersection_rows - 1
         return error
     
     def output(self):

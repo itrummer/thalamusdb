@@ -24,7 +24,7 @@ def test_retrieval(mocker):
     # Should return all tuples if predicate evaluates to True
     set_mock_filter(mocker, True)
     constraints = Constraints()
-    engine = ExecutionEngine(cars_db)
+    engine = ExecutionEngine(cars_db, 1)
     result, counters = engine.run(query, constraints)
     assert len(result) == 5
     assert counters.processed_tasks == 5
@@ -50,7 +50,7 @@ def test_limit(mocker):
     # Should return at least two tuples
     set_mock_filter(mocker, True)
     constraints = Constraints()
-    engine = ExecutionEngine(cars_db)
+    engine = ExecutionEngine(cars_db, 1)
     result, _ = engine.run(query, constraints)
     assert len(result) >= 2
     
@@ -72,7 +72,7 @@ def test_aggregation(mocker):
     # Should return count of all tuples if predicate evaluates to True
     set_mock_filter(mocker, True)
     constraints = Constraints()
-    engine = ExecutionEngine(cars_db)
+    engine = ExecutionEngine(cars_db, 1)
     result, counters = engine.run(query, constraints)
     assert result.iloc[0, 0] == 5
     assert counters.processed_tasks == 5

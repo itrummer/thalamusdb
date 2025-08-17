@@ -226,7 +226,7 @@ class NestedLoopJoin(SemanticJoin):
                 model=model,
                 messages=messages
             )
-            self.update_cost_counters(response)
+            self.update_cost_counters(model, response)
             result = str(response.choices[0].message.content)
             if result == '1':
                 matches.append((left_key, right_key))
@@ -338,11 +338,12 @@ class BatchJoin(SemanticJoin):
         # Create logit bias toward numbers, hyphens, and "L"/"R"
         
         response = completion(
+            temperature=0, 
             model=model,
             messages=messages,
             stop=['.']
         )
-        self.update_cost_counters(response)
+        self.update_cost_counters(model, response)
         matching_keys = []
         try:
             matching_keys = self._extract_matches(

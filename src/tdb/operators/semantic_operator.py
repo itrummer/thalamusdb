@@ -6,7 +6,7 @@ Created on Jul 16, 2025
 import base64
 import json
 
-from tdb.execution.counters import TdbCounters
+from tdb.execution.counters import LLMCounters, TdbCounters
 from pathlib import Path
 
 
@@ -162,12 +162,23 @@ class SemanticOperator:
         """ Prepare for execution by creating the temporary table. """
         raise NotImplementedError()
     
-    def update_cost_counters(self, llm_reply):
+    def update_cost_counters(self, model, llm_reply):
         """ Update cost-related counters from LLM reply.
         
         Args:
+            model (str): Name of the model used for the LLM call.
             llm_reply: The reply from the LLM (currently only OpenAI).
         """
-        self.counters.LLM_calls += 1
-        self.counters.input_tokens += llm_reply.usage.prompt_tokens
-        self.counters.output_tokens += llm_reply.usage.completion_tokens
+        if model not in self.counters.model2counters:
+            self.counters.model2counters[model] = LLMCounters()
+        
+        llm_counters = self.counters.model2counters[model]
+        llm_counters.LLM_calls += 1
+        llm_counters.input_tokens += llm_reply.usage.prompt_tokens
+        added_text_tokens = llm_reply.usage.prompt_tokens_details.text_tokens
+        added_image_tokens = llm_reply.usage.prompt_tokens_details.image_tokens
+        added_audio_tokens = llm_reply.usage.prompt_tokens_details.audio_tokens
+        llm_counters.text_input_tokens += added_text_tokens
+        llm_counters.image_input_tokens += added_image_tokens
+        llm_counters.audio_input_tokens += added_audio_tokens
+        llm_counters.output_tokens += llm_reply.usage.completion_tokens

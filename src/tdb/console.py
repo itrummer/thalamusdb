@@ -94,12 +94,16 @@ def run_console():
     """ Runs the interactive console for executing queries. """    
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        'db', type=str,
+        'dbpath', type=str,
         help='Path to the DuckDB database file.')
+    parser.add_argument(
+        '--dop', type=int, default=20,
+        help='Degree of parallelism (default: 20).')
     args = parser.parse_args()
     
-    db = Database(args.db)
-    engine = ExecutionEngine(db)
+    dbpath = Database(args.dbpath)
+    dop = args.dop
+    engine = ExecutionEngine(dbpath, dop)
     constraints = Constraints()
     history = InMemoryHistory()
     
@@ -112,7 +116,7 @@ def run_console():
             constraints.update(cmd)
         else:
             _process_query(
-                db, engine, constraints, cmd)
+                dbpath, engine, constraints, cmd)
     
     print('Execution finished. Exiting console.')
 

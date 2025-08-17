@@ -17,10 +17,10 @@ def _filter_completion_wrapper(item_text, kwargs):
         kwargs (dict): Keyword arguments for the completion function.
     
     Returns:
-        tuple: (item_text, LLM response).
+        tuple: (item_text, kwargs, LLM response).
     """
-    response = completion(**kwargs)
-    return item_text, response
+    response = completion(temperature=0, **kwargs)
+    return item_text, kwargs, response
 
 
 class UnaryFilter(SemanticOperator):
@@ -72,22 +72,17 @@ class UnaryFilter(SemanticOperator):
             inputs.append((item_text, kwargs))
 
         # Use multiprocessing to evaluate predicates in parallel
-        
-        with mp.Pool() as pool:
-            item_texts_responses = pool.starmap(
+        with mp.Pool(self.batch_size) as pool:
+            inputs_outputs = pool.starmap(
                 _filter_completion_wrapper, inputs)
-        
-        # item_texts_responses = []
-        # for one_input in inputs:
-        #     output = _filter_completion_wrapper(*one_input)
-        #     item_texts_responses.append(output)
             
         # Update cost counters
-        for _, response in item_texts_responses:
-            self.update_cost_counters(response)
+        for _, kwargs, response in inputs_outputs:
+            model = kwargs['model']
+            self.update_cost_counters(model, response)
         # Extract evaluation results
         results = []
-        for item_text, response in item_texts_responses:
+        for item_text, _, response in inputs_outputs:
             result = str(response.choices[0].message.content)
             # print(result)
             results.append((item_text, result == '1'))

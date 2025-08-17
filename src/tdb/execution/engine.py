@@ -19,13 +19,15 @@ from tdb.execution.counters import TdbCounters
 class ExecutionEngine:
     """ Execution engine for processing SQL queries with NL predicates. """
 
-    def __init__(self, db):
+    def __init__(self, db, dop):
         """ Initializes the execution engine with a database and connection.
         
         Args:
             db: Relational database instance.
+            dop: Degree of parallelism for query execution.
         """
         self.db = db
+        self.dop = dop
     
     def _aggregate_counters(self, semantic_operators):
         """ Aggregate counters from all semantic operators.
@@ -59,7 +61,7 @@ class ExecutionEngine:
                 # Create a unary filter operator
                 operator_id = f'UnaryFilter{predicate_id}'
                 semantic_filter = UnaryFilter(
-                    self.db, operator_id, 10, query, predicate)
+                    self.db, operator_id, self.dop, query, predicate)
                 semantic_operators.append(semantic_filter)
             
             elif isinstance(predicate, JoinPredicate):
