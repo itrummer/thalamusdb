@@ -175,10 +175,9 @@ class SemanticOperator:
         llm_counters = self.counters.model2counters[model]
         llm_counters.LLM_calls += 1
         llm_counters.input_tokens += llm_reply.usage.prompt_tokens
-        added_text_tokens = llm_reply.usage.prompt_tokens_details.text_tokens
-        added_image_tokens = llm_reply.usage.prompt_tokens_details.image_tokens
-        added_audio_tokens = llm_reply.usage.prompt_tokens_details.audio_tokens
-        llm_counters.text_input_tokens += added_text_tokens
-        llm_counters.image_input_tokens += added_image_tokens
-        llm_counters.audio_input_tokens += added_audio_tokens
+        for field in ["text", "image", "audio"]:
+            added_tokens = getattr(llm_reply.usage.prompt_tokens_details, f"{field}_tokens", None)
+            if added_tokens is not None:
+                setattr(llm_counters, f"{field}_input_tokens",
+                        getattr(llm_counters, f"{field}_input_tokens") + added_tokens)
         llm_counters.output_tokens += llm_reply.usage.completion_tokens
