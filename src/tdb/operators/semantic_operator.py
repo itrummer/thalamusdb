@@ -13,7 +13,7 @@ from pathlib import Path
 class SemanticOperator:
     """ Base class for semantic operators. """
     
-    def __init__(self, db, operator_ID, batch_size):
+    def __init__(self, db, operator_ID, batch_size, config_path):
         """
         Initializes the semantic operator with a unique identifier.
         
@@ -24,34 +24,19 @@ class SemanticOperator:
             db: Represents the source database.
             operator_ID (str): Unique identifier for the operator.
             batch_size (int): Determines number of items to process per call.
+            config_path (str): Path to the configuration file for models.
         """
         self.db = db
         self.operator_ID = operator_ID
         self.batch_size = batch_size
         self.counters = TdbCounters()
-        src_path = Path(__file__).parent.parent.parent.parent
-        model_path = src_path / 'config' / 'models.json'
+        model_path = Path(config_path)
         if not model_path.exists():
-            # Use default settings
-            self.models = {
-                "models":[
-                    {
-                        "id": "gpt-4o", 
-                        "modalities":["text", "image"], 
-                        "priority": 10},
-                    {
-                        "id": "gpt-4o-audio-preview", 
-                        "modalities":["text", "audio"], 
-                        "priority": 10}
-                ]
-            }
-            # raise FileNotFoundError(
-            #     f'Model configuration file not found at {model_path}')
+            raise FileNotFoundError(
+                f'Model configuration file not found at {model_path}.')
         else:
             with open(model_path) as file:
-                # Load model configuration from JSON file
                 self.models = json.load(file)
-                # print(self.models)
 
     def _encode_item(self, item_text):
         """ Encodes an item as message for LLM processing.
@@ -99,14 +84,14 @@ class SemanticOperator:
                 'text': item_text
             }
     
-    def _select_model(self, messages):
+    def _best_model_args(self, messages):
         """ Selects the LLM model based on content types of messages.
         
         Args:
             messages (list): List of messages to send to the model.
         
         Returns:
-            str: The selected model name.
+            dict: Keyword parameters selecting and configuring the model.
         """
         # Collect data types in messages (audio, text, image)
         data_types = set()
@@ -137,7 +122,7 @@ class SemanticOperator:
                 'No eligible models found for ' 
                 f'the given data types ({data_types})!')
         eligible_models.sort(key=lambda x: x['priority'], reverse=True)
-        return eligible_models[0]['id']
+        return eligible_models[0]['kwargs']
     
     def _gpt4_style_model(self, model):
         """ Checks if the model uses the GPT-4 tokenizer and token limits.

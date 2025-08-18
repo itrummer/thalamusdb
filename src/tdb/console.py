@@ -99,11 +99,15 @@ def run_console():
     parser.add_argument(
         '--dop', type=int, default=20,
         help='Degree of parallelism (default: 20).')
+    parser.add_argument(
+        '--modelconfigpath', type=str, default='config/models.json',
+        help='Path to model configuration file (JSON).')
     args = parser.parse_args()
     
-    dbpath = Database(args.dbpath)
+    db = Database(args.dbpath)
     dop = args.dop
-    engine = ExecutionEngine(dbpath, dop)
+    model_config_path = args.modelconfigpath
+    engine = ExecutionEngine(db, dop, model_config_path)
     constraints = Constraints()
     history = InMemoryHistory()
     
@@ -116,7 +120,7 @@ def run_console():
             constraints.update(cmd)
         else:
             _process_query(
-                dbpath, engine, constraints, cmd)
+                db, engine, constraints, cmd)
     
     print('Execution finished. Exiting console.')
 

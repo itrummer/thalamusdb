@@ -14,7 +14,7 @@ class SemanticJoin(SemanticOperator):
     
     def __init__(
             self, db, operator_ID, batch_size, 
-            query, join_predicate):
+            config_path, query, join_predicate):
         """
         Initializes the semantic join operator.
         
@@ -22,10 +22,11 @@ class SemanticJoin(SemanticOperator):
             db: Database containing the joined tables.
             operator_ID (str): Unique identifier for the operator.
             batch_size (int): Number of items to process per call.
+            config_path (str): Path to the configuration file for models.
             query: Query containing the join predicate.
             join_predicate: Join predicate expressed in natural language.
         """
-        super().__init__(db, operator_ID, batch_size)
+        super().__init__(db, operator_ID, batch_size, config_path)
         self.query = query
         self.pred = join_predicate
         self.tmp_table = f'ThalamusDB_{self.operator_ID}'
@@ -221,11 +222,10 @@ class NestedLoopJoin(SemanticJoin):
                 ]
             }
             messages = [message]
-            model = self._select_model(messages)
-            response = completion(
-                model=model,
-                messages=messages
-            )
+            kwargs = self._best_model_args(messages)
+            kwargs['messages'] = messages
+            response = completion(**kwargs)
+            model = kwargs['model']
             self.update_cost_counters(model, response)
             result = str(response.choices[0].message.content)
             if result == '1':
@@ -331,18 +331,10 @@ class BatchJoin(SemanticJoin):
         # Construct prompt for LLM
         prompt = self._create_prompt(left_items, right_items)
         messages = [prompt]
-        model = self._select_model(messages)
-        # print(prompt)
-        # print(f'Left join batch size: {len(left_items)}')
-        # print(f'Right join batch size: {len(right_items)}')
-        # Create logit bias toward numbers, hyphens, and "L"/"R"
-        
-        response = completion(
-            temperature=0, 
-            model=model,
-            messages=messages,
-            stop=['.']
-        )
+        kwargs = self._best_model_args(messages)['join']
+        kwargs['messages'] = messages
+        response = completion(**kwargs)
+        model = kwargs['model']
         self.update_cost_counters(model, response)
         matching_keys = []
         try:

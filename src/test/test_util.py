@@ -9,6 +9,7 @@ from pathlib import Path
 
 root_dir = Path(__file__).parent.parent.parent
 cars_db_path = Path(root_dir, 'data', 'cars', 'cars.db')
+model_config_path = Path(root_dir, 'config', 'models.json')
 cars_db = Database(database_name=str(cars_db_path))
 
 

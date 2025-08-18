@@ -3,6 +3,7 @@ Created on Jul 16, 2025
 
 @author: immanueltrummer
 '''
+import litellm
 import multiprocessing as mp
 
 from litellm import completion
@@ -19,14 +20,17 @@ def _filter_completion_wrapper(item_text, kwargs):
     Returns:
         tuple: (item_text, kwargs, LLM response).
     """
-    response = completion(temperature=0, **kwargs)
+    litellm.drop_params = True
+    response = completion(**kwargs)
     return item_text, kwargs, response
 
 
 class UnaryFilter(SemanticOperator):
     """ Base class for unary filters specified in natural language. """
     
-    def __init__(self, db, operator_ID, batch_size, query, predicate):
+    def __init__(
+            self, db, operator_ID, batch_size, 
+            config_path, query, predicate):
         """
         Initializes the unary filter.
         
@@ -34,10 +38,11 @@ class UnaryFilter(SemanticOperator):
             db: Database containing the filtered table.
             operator_ID (str): Unique identifier for the operator.
             batch_size (int): Number of items to process per call.
+            config_path (str): Path to the configuration file for models.
             query: Query containing the predicate.
             predicate: predicate expressed in natural language.
         """
-        super().__init__(db, operator_ID, batch_size)
+        super().__init__(db, operator_ID, batch_size, config_path)
         self.query = query
         self.filtered_table = predicate.table
         self.filtered_alias = predicate.alias
@@ -59,16 +64,8 @@ class UnaryFilter(SemanticOperator):
         inputs = []
         for item_text in item_texts:
             messages = [self._message(item_text)]
-            model = self._select_model(messages)
-            kwargs = {
-                'messages': messages,
-                'model': model,
-            }
-            # Add logit bias and token limitation for GPT-3.5/4 models
-            if self._gpt4_style_model(model):
-                kwargs['logit_bias'] = self._gpt_filter_bias(model)
-                kwargs['max_tokens'] = 1
-            
+            kwargs = self._best_model_args(messages)['filter']
+            kwargs['messages'] = messages
             inputs.append((item_text, kwargs))
 
         # Use multiprocessing to evaluate predicates in parallel
