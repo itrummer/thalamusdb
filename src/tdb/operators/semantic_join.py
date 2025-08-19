@@ -222,8 +222,8 @@ class NestedLoopJoin(SemanticJoin):
                 ]
             }
             messages = [message]
-            kwargs = self._best_model_args(messages)
-            kwargs['messages'] = messages
+            base = self._best_model_args(messages)
+            kwargs = {**base, 'messages': messages}
             response = completion(**kwargs)
             model = kwargs['model']
             self.update_cost_counters(model, response)
@@ -290,8 +290,10 @@ class BatchJoin(SemanticJoin):
         content = llm_response.choices[0].message.content
         # print(content)
         matching_keys = []
+        content = content.replace(".", "")
         pairs_str = content.split(',')
         for pair_str in pairs_str:
+            pair_str = pair_str.strip()
             left_ref, right_ref = pair_str.split('-')
             left_idx = int(left_ref[1:])
             right_idx = int(right_ref[1:])
@@ -331,8 +333,8 @@ class BatchJoin(SemanticJoin):
         # Construct prompt for LLM
         prompt = self._create_prompt(left_items, right_items)
         messages = [prompt]
-        kwargs = self._best_model_args(messages)['join']
-        kwargs['messages'] = messages
+        base = self._best_model_args(messages)['join']
+        kwargs = {**base, 'messages': messages}
         response = completion(**kwargs)
         model = kwargs['model']
         self.update_cost_counters(model, response)
