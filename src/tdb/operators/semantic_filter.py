@@ -64,8 +64,8 @@ class UnaryFilter(SemanticOperator):
         inputs = []
         for item_text in item_texts:
             messages = [self._message(item_text)]
-            kwargs = self._best_model_args(messages)['filter']
-            kwargs['messages'] = messages
+            base = self._best_model_args(messages)['filter']
+            kwargs = {**base, 'messages': messages}          
             inputs.append((item_text, kwargs))
 
         # Use multiprocessing to evaluate predicates in parallel
