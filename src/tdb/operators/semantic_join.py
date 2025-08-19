@@ -290,8 +290,10 @@ class BatchJoin(SemanticJoin):
         content = llm_response.choices[0].message.content
         # print(content)
         matching_keys = []
+        content = content.replace(".", "")
         pairs_str = content.split(',')
         for pair_str in pairs_str:
+            pair_str = pair_str.strip()
             left_ref, right_ref = pair_str.split('-')
             left_idx = int(left_ref[1:])
             right_idx = int(right_ref[1:])

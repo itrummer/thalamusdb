@@ -1,17 +1,52 @@
 {
 	"models":[
 		{
+			"modalities":["text", "image"], "priority": 1,
+			"kwargs": {
+			    "filter": {
+					"model": "gemini-2.5-flash",
+					"temperature": 0,
+					"max_tokens": 1,
+					"reasoning_effort": "disable"
+				},
+				"join": {
+				    "model": "gemini-2.5-flash",
+					"temperature": 0,
+					"stop": ["."],
+					"reasoning_effort": "disable"
+                }
+			}
+		},
+		{
 			"modalities":["text", "image"], "priority": 10,
 			"kwargs": {
 			    "filter": {
-					"model": "gpt-5-mini"
+					"model": "gpt-5-mini",
+					"reasoning_effort": "minimal"
 				},
 				"join": {
-				    "model": "gpt-5-mini"
+				    "model": "gpt-5-mini",
+					"reasoning_effort": "minimal"
                 }
 			}
 		},
 		{"modalities":["text", "audio"], "priority": 10,
+	        "kwargs": {
+                "filter": {
+                    "model": "gemini-2.5-flash",
+					"temperature": 0,
+                    "max_tokens": 1,
+					"reasoning_effort": "disable"
+                },
+                "join": {
+                    "model": "gemini-2.5-flash",
+					"temperature": 0,
+                    "stop": ["."],
+					"reasoning_effort": "disable"
+                }
+            }
+        },
+		{"modalities":["text", "audio"], "priority": 1,
 	        "kwargs": {
                 "filter": {
                     "model": "gpt-4o-audio-preview",
