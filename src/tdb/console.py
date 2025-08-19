@@ -4,9 +4,12 @@ Created on Jul 22, 2025
 @author: immanueltrummer
 '''
 import argparse
+import sys
 import time
 import traceback
 
+from prompt_toolkit import prompt
+from prompt_toolkit.history import InMemoryHistory
 from rich.console import Console
 from rich.rule import Rule
 from tdb.data.relational import Database
@@ -16,26 +19,50 @@ from tdb.queries.query import Query
 from tdb.ui.util import print_df
 
 
-def print_welcome():
+def _is_terminal():
+    """ Checks if both stdin and stdout are attached to a TTY.
+    
+    Returns:
+        True if both stdin and stdout are TTYs, False otherwise.
+    """
+    return sys.stdin.isatty() and sys.stdout.isatty()
+
+
+def _get_input(history):
+    """ Gets input from the user, either via prompt_toolkit or standard input.
+    
+    Args:
+        history: History object for storing input history.
+    
+    Returns:
+        The input string from the user.
+    """
+    if _is_terminal():
+        return prompt('Enter query (or "\\q" to quit): ', history=history)
+    else:
+        return input('Enter query (or "\\q" to quit): ')
+
+
+def _print_welcome():
     """ Prints a welcome message for the console. """
     print(
 '''Welcome to the ThalamusDB interactive console!
 
 Use the following semantic predicates in your SQL queries (WHERE clause):
-- NLfilter(table, column, condition): 
+- NLfilter(table.column, condition): 
     filters rows based on a natural language condition
-- NLjoin(table1, column1, table2, column2, condition):
+- NLjoin(table1.column1, table2.column2, condition):
     filters rows pairs based on a natural language join condition
 
 Semantic predicates apply to columns of SQL type TEXT.
-Those columns can contain paths of images. ThalamusDB
-detects such cases by exploiting the file extension.
-If a cell contains a path to an image, ThalamusDB treats
+Those columns can contain paths of images or audio files.
+ThalamusDB detects such cases based on file extensions.
+E.g., if a cell contains a path to an image, ThalamusDB treats
 the cell content as an image and uses suitable LLMs.
 ''')
 
 
-def process_query(db, engine, constraints, cmd):
+def _process_query(db, engine, constraints, cmd):
     """ Processes a semantic SQL query command.
     
     Args:
@@ -67,25 +94,32 @@ def run_console():
     """ Runs the interactive console for executing queries. """    
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        'db', type=str,
+        'dbpath', type=str,
         help='Path to the DuckDB database file.')
+    parser.add_argument(
+        '--dop', type=int, default=20,
+        help='Degree of parallelism (default: 20).')
+    parser.add_argument(
+        '--modelconfigpath', type=str, default='config/models.json',
+        help='Path to model configuration file (JSON).')
     args = parser.parse_args()
     
-    print_welcome()
-    
-    db = Database(args.db)
-    engine = ExecutionEngine(db)
+    db = Database(args.dbpath)
+    dop = args.dop
+    model_config_path = args.modelconfigpath
+    engine = ExecutionEngine(db, dop, model_config_path)
     constraints = Constraints()
+    history = InMemoryHistory()
     
     cmd = ''
     while not (cmd.lower() == '\\q'):
-        cmd = input('Enter query (or "\\q" to quit): ')
+        cmd = _get_input(history)
         if cmd.lower() == '\\q':
             break
         elif cmd.startswith('set'):
             constraints.update(cmd)
         else:
-            process_query(
+            _process_query(
                 db, engine, constraints, cmd)
     
     print('Execution finished. Exiting console.')

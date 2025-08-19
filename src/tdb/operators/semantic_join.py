@@ -5,7 +5,7 @@ Created on Jul 20, 2025
 '''
 import traceback
 
-from sqlglot import exp
+from litellm import completion
 from tdb.operators.semantic_operator import SemanticOperator
 
 
@@ -14,7 +14,7 @@ class SemanticJoin(SemanticOperator):
     
     def __init__(
             self, db, operator_ID, batch_size, 
-            query, join_predicate):
+            config_path, query, join_predicate):
         """
         Initializes the semantic join operator.
         
@@ -22,10 +22,11 @@ class SemanticJoin(SemanticOperator):
             db: Database containing the joined tables.
             operator_ID (str): Unique identifier for the operator.
             batch_size (int): Number of items to process per call.
+            config_path (str): Path to the configuration file for models.
             query: Query containing the join predicate.
             join_predicate: Join predicate expressed in natural language.
         """
-        super().__init__(db, operator_ID, batch_size)
+        super().__init__(db, operator_ID, batch_size, config_path)
         self.query = query
         self.pred = join_predicate
         self.tmp_table = f'ThalamusDB_{self.operator_ID}'
@@ -221,15 +222,11 @@ class NestedLoopJoin(SemanticJoin):
                 ]
             }
             messages = [message]
-            model = self._select_model(messages)
-            response = self.llm.chat.completions.create(
-                model=model,
-                messages=messages,
-                max_tokens=1,
-                logit_bias={15: 100, 16: 100},
-                temperature=0.0
-            )
-            self.update_cost_counters(response)
+            base = self._best_model_args(messages)
+            kwargs = {**base, 'messages': messages}
+            response = completion(**kwargs)
+            model = kwargs['model']
+            self.update_cost_counters(model, response)
             result = str(response.choices[0].message.content)
             if result == '1':
                 matches.append((left_key, right_key))
@@ -293,8 +290,10 @@ class BatchJoin(SemanticJoin):
         content = llm_response.choices[0].message.content
         # print(content)
         matching_keys = []
+        content = content.replace(".", "")
         pairs_str = content.split(',')
         for pair_str in pairs_str:
+            pair_str = pair_str.strip()
             left_ref, right_ref = pair_str.split('-')
             left_idx = int(left_ref[1:])
             right_idx = int(right_ref[1:])
@@ -329,46 +328,16 @@ class BatchJoin(SemanticJoin):
         nr_right_items = len(right_items)
         if nr_left_items == 0 or nr_right_items == 0:
             return []
-        print(f'Nr of left items: {nr_left_items}, ')
-        print(f'Nr of right items: {nr_right_items}')
+        # print(f'Nr of left items: {nr_left_items}, ')
+        # print(f'Nr of right items: {nr_right_items}')
         # Construct prompt for LLM
         prompt = self._create_prompt(left_items, right_items)
         messages = [prompt]
-        model = self._select_model(messages)
-        # print(prompt)
-        # print(f'Left join batch size: {len(left_items)}')
-        # print(f'Right join batch size: {len(right_items)}')
-        # Create logit bias toward numbers, hyphens, and "L"/"R"
-        logit_bias = {}
-        for i in range(10):
-            logit_bias[i + 15] = 100
-        
-        logit_bias[11] = 100 # ,
-        logit_bias[12] = 100 # -
-        logit_bias[13] = 100 # .
-        logit_bias[43] = 100 # L
-        logit_bias[49] = 100 # R
-        
-        # Determine maximal number of tokens
-        # print(prompt)
-        max_tokens = 1 + len(left_items) * len(right_items) * 10
-        
-        # print(f'max_tokens: {max_tokens}')
-        # print(f'Left keys: {len(left_keys)}')
-        # print(f'Right keys: {len(right_keys)}')
-        # print(f'logit_bias: {logit_bias}')
-        # print(prompt)
-        
-        response = self.llm.chat.completions.create(
-            model=model,
-            # model='gpt-4o-mini',
-            messages=messages,
-            max_tokens=max_tokens,
-            logit_bias=logit_bias,
-            temperature=0.0,
-            stop=['.']
-        )
-        self.update_cost_counters(response)
+        base = self._best_model_args(messages)['join']
+        kwargs = {**base, 'messages': messages}
+        response = completion(**kwargs)
+        model = kwargs['model']
+        self.update_cost_counters(model, response)
         matching_keys = []
         try:
             matching_keys = self._extract_matches(
@@ -415,3 +384,25 @@ class BatchJoin(SemanticJoin):
             f'AND result IS NULL;')
         pairs = self.db.execute2list(pairs_sql)
         return pairs
+    
+    def _gpt_join_bias(self, model):
+        """ Add logit bias on output tokens for GPT models.
+        
+        Args:
+            model (str): Name of the model to use.
+        
+        Returns:
+            dict: Logit bias to encourage specific outputs for GPT models.
+        """
+        logit_bias = {}
+        if self.gpt4_style_model(model):
+            for i in range(10):
+                logit_bias[i + 15] = 100
+            
+            logit_bias[11] = 100 # ,
+            logit_bias[12] = 100 # -
+            logit_bias[13] = 100 # .
+            logit_bias[43] = 100 # L
+            logit_bias[49] = 100 # R
+        
+        return logit_bias

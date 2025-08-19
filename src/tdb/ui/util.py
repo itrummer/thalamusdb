@@ -43,3 +43,15 @@ def print_df(df, title='Query Result'):
     
     console = Console()
     console.print(table)
+
+
+def print_progress(nr_processed, nr_unprocessed):
+    """ Print execution progress updates.
+    
+    Args:
+        nr_processed: number of processed tasks.
+        nr_unprocessed: number of unprocessed tasks.
+    """
+    nr_total = nr_processed + nr_unprocessed
+    console = Console()
+    console.print(f'Processed {nr_processed}/{nr_total} (max) tasks.')

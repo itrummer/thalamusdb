@@ -5,3 +5,5 @@ sqlglot==27.0.0
 rich==13.9.4
 pytest==8.4.1
 pytest-mock==3.14
+litellm==1.75.5.post1
+prompt_toolkit==3.0.51

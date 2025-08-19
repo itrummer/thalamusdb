@@ -3,13 +3,34 @@ Created on Jul 16, 2025
 
 @author: immanueltrummer
 '''
+import litellm
+import multiprocessing as mp
+
+from litellm import completion
 from tdb.operators.semantic_operator import SemanticOperator
+
+
+def _filter_completion_wrapper(item_text, kwargs):
+    """ Invoke completion function with given keyword arguments.
+    
+    Args:
+        item_text (str): Text representation of the item.
+        kwargs (dict): Keyword arguments for the completion function.
+    
+    Returns:
+        tuple: (item_text, kwargs, LLM response).
+    """
+    litellm.drop_params = True
+    response = completion(**kwargs)
+    return item_text, kwargs, response
 
 
 class UnaryFilter(SemanticOperator):
     """ Base class for unary filters specified in natural language. """
     
-    def __init__(self, db, operator_ID, batch_size, query, predicate):
+    def __init__(
+            self, db, operator_ID, batch_size, 
+            config_path, query, predicate):
         """
         Initializes the unary filter.
         
@@ -17,10 +38,11 @@ class UnaryFilter(SemanticOperator):
             db: Database containing the filtered table.
             operator_ID (str): Unique identifier for the operator.
             batch_size (int): Number of items to process per call.
+            config_path (str): Path to the configuration file for models.
             query: Query containing the predicate.
             predicate: predicate expressed in natural language.
         """
-        super().__init__(db, operator_ID, batch_size)
+        super().__init__(db, operator_ID, batch_size, config_path)
         self.query = query
         self.filtered_table = predicate.table
         self.filtered_alias = predicate.alias
@@ -29,14 +51,63 @@ class UnaryFilter(SemanticOperator):
         self.filter_sql = predicate.sql
         self.tmp_table = f'ThalamusDB_{self.operator_ID}'
     
-    def _evaluate_predicate(self, item_text):
-        """ Evaluates the filter condition using the LLM.
+    def _evaluate_predicate_parallel(self, item_texts):
+        """ Evaluates the filter conditions using the LLM in parallel.
         
         Args:
-            item_text (str): Text of the item to evaluate.
+            item_texts: List of items to evaluate.
         
         Returns:
-            True iff the item satisfies the filter condition.
+            List of tuples (item_text, result) where result is True or False.
+        """
+        # Prepare keyword inputs for completion function
+        inputs = []
+        for item_text in item_texts:
+            messages = [self._message(item_text)]
+            base = self._best_model_args(messages)['filter']
+            kwargs = {**base, 'messages': messages}          
+            inputs.append((item_text, kwargs))
+
+        # Use multiprocessing to evaluate predicates in parallel
+        with mp.Pool(self.batch_size) as pool:
+            inputs_outputs = pool.starmap(
+                _filter_completion_wrapper, inputs)
+            
+        # Update cost counters
+        for _, kwargs, response in inputs_outputs:
+            model = kwargs['model']
+            self.update_cost_counters(model, response)
+        # Extract evaluation results
+        results = []
+        for item_text, _, response in inputs_outputs:
+            result = str(response.choices[0].message.content)
+            # print(result)
+            results.append((item_text, result == '1'))
+        
+        return results
+    
+    def _gpt_filter_bias(self, model):
+        """ Add logit bias on output tokens for GPT models.
+        
+        Args:
+            model (str): Name of the model to use.
+        
+        Returns:
+            dict: Logit bias to encourage 0/1 outputs for GPT models.
+        """
+        if self._gpt4_style_model(model):
+            return {15: 100, 16: 100}
+        else:
+            return {}
+    
+    def _message(self, item_text):
+        """ Create a message for the LLM describing the evaluation task.
+        
+        Args:
+            item_text (str): Text representation of the item.
+        
+        Returns:
+            dict: Message for the LLM.
         """
         item = self._encode_item(item_text)
         question = (
@@ -53,21 +124,7 @@ class UnaryFilter(SemanticOperator):
                 item
                 ]
             }
-        messages = [message]
-        model = self._select_model(messages)
-        # print(messages)
-        # print(model)
-        response = self.llm.chat.completions.create(
-            model=model,
-            messages=messages,
-            max_tokens=1,
-            logit_bias={15: 100, 16: 100},
-            temperature=0.0
-        )
-        self.update_cost_counters(response)
-        result = str(response.choices[0].message.content)
-        # print(f'LLM response: {result}')
-        return result == '1'
+        return message
     
     def _retrieve_items(self, nr_rows, order):
         """ Retrieve items to process next from the filtered table.
@@ -132,12 +189,12 @@ class UnaryFilter(SemanticOperator):
             order (tuple): None or tuple (column, ascending flag).
         """
         # Retrieve nr_rows in sort order from temporary table
-        items_to_process = self._retrieve_items(
-            self.batch_size, order)
-        # Process each row with LLM
-        for item_text in items_to_process:
-            result = self._evaluate_predicate(item_text)
-            # Update temporary table with results
+        items_to_process = self._retrieve_items(self.batch_size, order)
+        # Evaluate predicates on different items in parallel
+        results = self._evaluate_predicate_parallel(items_to_process)
+        # Update results in the temporary table
+        for item_text, result in results:
+            # Escape single quotes in item text for SQL
             escaped_item_text = item_text.replace("'", "''")
             update_sql = (
                 f'UPDATE {self.tmp_table} '
@@ -145,7 +202,6 @@ class UnaryFilter(SemanticOperator):
                 f'simulated = {result} '
                 f"WHERE base_{self.filtered_column} = '{escaped_item_text}'")
             self.db.execute2list(update_sql)
-        
         # Update task counters
         self.counters.processed_tasks += len(items_to_process)
         self.counters.unprocessed_tasks -= len(items_to_process)

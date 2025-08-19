@@ -19,13 +19,17 @@ from tdb.execution.counters import TdbCounters
 class ExecutionEngine:
     """ Execution engine for processing SQL queries with NL predicates. """
 
-    def __init__(self, db):
+    def __init__(self, db, dop, model_config_path):
         """ Initializes the execution engine with a database and connection.
         
         Args:
             db: Relational database instance.
+            dop: Degree of parallelism for query execution.
+            model_config_path: Path to the model configuration file.
         """
         self.db = db
+        self.dop = dop
+        self.model_config_path = model_config_path
     
     def _aggregate_counters(self, semantic_operators):
         """ Aggregate counters from all semantic operators.
@@ -59,14 +63,16 @@ class ExecutionEngine:
                 # Create a unary filter operator
                 operator_id = f'UnaryFilter{predicate_id}'
                 semantic_filter = UnaryFilter(
-                    self.db, operator_id, 10, query, predicate)
+                    self.db, operator_id, self.dop, 
+                    self.model_config_path, query, predicate)
                 semantic_operators.append(semantic_filter)
             
             elif isinstance(predicate, JoinPredicate):
                 # Create a semantic join operator
                 operator_id = f'Join{predicate_id}'
                 semantic_join = BatchJoin(
-                    self.db, operator_id, 10, query, predicate)
+                    self.db, operator_id, 10, 
+                    self.model_config_path, query, predicate)
                 semantic_operators.append(semantic_join)
             else:
                 raise ValueError(
@@ -176,6 +182,12 @@ class ExecutionEngine:
                 aggregate_results = AggregateResults(results)
             else:
                 aggregate_results = RetrievalResults(results)
+                nr_certain_rows = len(aggregate_results.intersection)
+                if nr_certain_rows >= query.limit:
+                    console.print(
+                        Rule('Query Limit Reached'),
+                        style='bold red')
+                    break
             
             console.print(Rule('Query Progress Updates'))
             aggregate_results.output()

@@ -48,11 +48,12 @@ class Constraints():
         Returns:
             True if execution should be terminated, False otherwise.
         """
-        if counters.LLM_calls > self.max_calls:
+        if counters.total_LLM_calls() > self.max_calls:
             print('Execution terminated due to max LLM calls exceeded.')
             return True
         
-        total_tokens = counters.input_tokens + counters.output_tokens
+        total_tokens = counters.total_input_tokens() + \
+            counters.total_output_tokens()
         if total_tokens > self.max_tokens:
             print('Execution terminated due to max tokens exceeded.')
             return True

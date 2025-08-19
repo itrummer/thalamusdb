@@ -6,15 +6,14 @@ Created on Jul 16, 2025
 import base64
 import json
 
-from tdb.execution.counters import TdbCounters
-from openai import OpenAI
+from tdb.execution.counters import LLMCounters, TdbCounters
 from pathlib import Path
 
 
 class SemanticOperator:
     """ Base class for semantic operators. """
     
-    def __init__(self, db, operator_ID, batch_size):
+    def __init__(self, db, operator_ID, batch_size, config_path):
         """
         Initializes the semantic operator with a unique identifier.
         
@@ -25,35 +24,19 @@ class SemanticOperator:
             db: Represents the source database.
             operator_ID (str): Unique identifier for the operator.
             batch_size (int): Determines number of items to process per call.
+            config_path (str): Path to the configuration file for models.
         """
         self.db = db
         self.operator_ID = operator_ID
         self.batch_size = batch_size
         self.counters = TdbCounters()
-        self.llm = OpenAI()
-        src_path = Path(__file__).parent.parent.parent.parent
-        model_path = src_path / 'config' / 'models.json'
+        model_path = Path(config_path)
         if not model_path.exists():
-            # Use default settings
-            self.models = {
-                "models":[
-                    {
-                        "id": "gpt-4o", 
-                        "modalities":["text", "image"], 
-                        "priority": 10},
-                    {
-                        "id": "gpt-4o-audio-preview", 
-                        "modalities":["text", "audio"], 
-                        "priority": 10}
-                ]
-            }
-            # raise FileNotFoundError(
-            #     f'Model configuration file not found at {model_path}')
+            raise FileNotFoundError(
+                f'Model configuration file not found at {model_path}.')
         else:
             with open(model_path) as file:
-                # Load model configuration from JSON file
                 self.models = json.load(file)
-                # print(self.models)
 
     def _encode_item(self, item_text):
         """ Encodes an item as message for LLM processing.
@@ -64,11 +47,13 @@ class SemanticOperator:
         Returns:
             dict: Encoded item as a dictionary with 'role' and 'content'.
         """
-        image_extensions = ['.png', '.jpg', '.jpeg']
+        file_path = Path(item_text)
+        if not file_path.is_absolute():
+            file_path = Path(self.db.db_path).parent / file_path
         if any(
             item_text.endswith(extension) \
-            for extension in image_extensions):
-            with open(item_text, 'rb') as image_file:
+            for extension in ['.png', '.jpg', '.jpeg']):
+            with file_path.open('rb') as image_file:
                 image = base64.b64encode(
                     image_file.read()).decode('utf-8')
                 
@@ -82,7 +67,7 @@ class SemanticOperator:
         elif any(
             item_text.endswith(extension) \
             for extension in ['.wav', '.mp3']):
-            with open(item_text, 'rb') as audio_file:
+            with file_path.open('rb') as audio_file:
                 audio = base64.b64encode(
                     audio_file.read()).decode('utf-8')
             
@@ -99,14 +84,14 @@ class SemanticOperator:
                 'text': item_text
             }
     
-    def _select_model(self, messages):
+    def _best_model_args(self, messages):
         """ Selects the LLM model based on content types of messages.
         
         Args:
             messages (list): List of messages to send to the model.
         
         Returns:
-            str: The selected model name.
+            dict: Keyword parameters selecting and configuring the model.
         """
         # Collect data types in messages (audio, text, image)
         data_types = set()
@@ -137,7 +122,18 @@ class SemanticOperator:
                 'No eligible models found for ' 
                 f'the given data types ({data_types})!')
         eligible_models.sort(key=lambda x: x['priority'], reverse=True)
-        return eligible_models[0]['id']
+        return eligible_models[0]['kwargs']
+    
+    def _gpt4_style_model(self, model):
+        """ Checks if the model uses the GPT-4 tokenizer and token limits.
+        
+        Args:
+            model (str): Name of the model to check.
+        
+        Returns:
+            bool: can use the same arguments for completions as for GPT-4?
+        """
+        return 'gpt-4' in model or 'gpt-3.5' in model
     
     def execute(self, order):
         """ Execute operator on a data batch.
@@ -151,12 +147,22 @@ class SemanticOperator:
         """ Prepare for execution by creating the temporary table. """
         raise NotImplementedError()
     
-    def update_cost_counters(self, llm_reply):
+    def update_cost_counters(self, model, llm_reply):
         """ Update cost-related counters from LLM reply.
         
         Args:
+            model (str): Name of the model used for the LLM call.
             llm_reply: The reply from the LLM (currently only OpenAI).
         """
-        self.counters.LLM_calls += 1
-        self.counters.input_tokens += llm_reply.usage.prompt_tokens
-        self.counters.output_tokens += llm_reply.usage.completion_tokens
+        if model not in self.counters.model2counters:
+            self.counters.model2counters[model] = LLMCounters()
+        
+        llm_counters = self.counters.model2counters[model]
+        llm_counters.LLM_calls += 1
+        llm_counters.input_tokens += llm_reply.usage.prompt_tokens
+        for field in ["text", "image", "audio"]:
+            added_tokens = getattr(llm_reply.usage.prompt_tokens_details, f"{field}_tokens", None)
+            if added_tokens is not None:
+                setattr(llm_counters, f"{field}_input_tokens",
+                        getattr(llm_counters, f"{field}_input_tokens") + added_tokens)
+        llm_counters.output_tokens += llm_reply.usage.completion_tokens
