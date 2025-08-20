@@ -98,17 +98,17 @@ The `kwargs` field is a dictionary that contains two fields: `filter` and `join`
 
 ```json
 {
-  "modalities": ["text", "image"], "priority": 10,
+	"modalities": ["text", "image"], "priority": 10,
 	"kwargs": {
-	  "filter": {
-      "model": "gpt-5-mini",
-      "reasoning_effort": "minimal"
-    },
-    "join": {
-      "model": "gpt-5-mini",
-        "reasoning_effort": "minimal"
-      }
-  }
+		"filter": {
+			"model": "gpt-5-mini",
+			"reasoning_effort": "minimal"
+		},
+		"join": {
+			"model": "gpt-5-mini",
+			"reasoning_effort": "minimal"
+		}
+	}
 }
 ```
 
