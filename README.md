@@ -78,12 +78,39 @@ To represent images, create a column of SQL type `text` in your table and store 
 
 # Query Language
 
-ThalamusDB supports SQL queries with semantic filter predicates. Specifically, ThalamusDB supports two types of semantic filters:
+ThalamusDB supports SQL queries with semantic filter predicates. Specifically, ThalamusDB supports two types of semantic filters (both must appear in the SQL `WHERE` clause):
 
 | Operator | Semantics |
 | --- | --- |
 | `NLfilter([Column], [Condition])` | Filters rows based on a condition in natural language |
 | `NLjoin([Column in Table 1], [Column in Table2], [Condition])` | Filters row pairs using the join condition in natural language |
+
+# Configuring Models
+
+ThalamusDB works with models of various providers. Users specify the models to use on specific data types in a model configuration file. Also, the configuration file enables users to configure models for specific operators (e.g., by setting the `temperature` parameter or `reasoning_effort`). You can find an example configuration file in this repository at `config/models.json`.
+
+The model configuration file contains a dictionary with a single field, `models`, that stores a list of model configurations. Each list entry is a dictionary with three fields:
+- `modalities`: a list of data modalities the model can process (a subset of "text", "image", and "audio").
+- `priority`: if multiple models can be used to serve a request, ThalamusDB prefers the ones with higher priority.
+- `kwargs`: describes the parameter settings used for each semantic operator (parameters include the model ID).
+
+The `kwargs` field is a dictionary that contains two fields: `filter` and `join`. Each field contains the settings (mapping from parameter names to values) that are used when calling the language model for the corresponding semantic operator (semantic filter or join). The following entry is an example model configuration, setting up both semantic operators to use the GPT-5 Mini model:
+
+```json
+{
+  "modalities": ["text", "image"], "priority": 10,
+	"kwargs": {
+	  "filter": {
+      "model": "gpt-5-mini",
+      "reasoning_effort": "minimal"
+    },
+    "join": {
+      "model": "gpt-5-mini",
+        "reasoning_effort": "minimal"
+      }
+  }
+}
+```
 
 # Approximate Processing
 
