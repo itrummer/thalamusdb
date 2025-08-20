@@ -25,7 +25,7 @@ Install ThalamusDB using pip:
 pip install thalamusdb
 ```
 
-You need an OpenAI API key to use ThalamusDB. This key must be stored in the environment variable `OPENAI_API_KEY`. On Linux platforms, you can set the variable using the following command:
+ThalamusDB can use language models from various providers, including OpenAI and Google. Store the access key of the provider you plan to use in an environment variable. For instance, if using OpenAI, set the `OPENAI_API_KEY` environment variable using the following command on Linux platforms:
 
 ```bash
 export OPENAI_API_KEY=[Your OpenAI API Key]
@@ -34,18 +34,17 @@ export OPENAI_API_KEY=[Your OpenAI API Key]
 Now you can run the ThalamusDB console using the following command:
 
 ```bash
-thalamusdb [Path to DuckDB database file]
+thalamusdb [Path to DuckDB database file] --modelconfigpath=[Path to model configuration file]
 ```
 
 For instance, try out the example database in this repository:
 
 ```bash
 git clone https://github.com/itrummer/thalamusdb
-cd thalamusdb/data/cars
-thalamusdb cars.db
+cd thalamusdb
+thalamusdb cars.db --modelconfigpath=config/models.json
 ```
 
-*Note: You must start `ThalamusDB` from the directory containing the `cars.db` file as the database contains relative paths to image files (see next).*
 The cars database contains a single table with the following schema:
 
 ```sql
