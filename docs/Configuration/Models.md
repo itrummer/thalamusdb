@@ -7,13 +7,25 @@ parent: Configuration Options
 
 *Note: to access the model configuration files, users need to clone the code repository (installation via `pip` is insufficient).*
 
-During query processing, ThalamusDB dynamically selects the most suitable language model for each semantic operator. Currently, only models by OpenAI are supported. Users can configure the way in which ThalamusDB selects models. The associated configuration file is located at `config/models.json`. This is the default content of the file:
+During query processing, ThalamusDB dynamically selects the most suitable language model for each semantic operator. Currently, only models by OpenAI are supported. Users can configure the way in which ThalamusDB selects models. The associated configuration file is located at `config/models.json`. This is an extract of the default version of the file:
 
 ```json
 {
 	"models":[
-		{"id": "gpt-4o", "modalities":["text", "image"], "priority": 10},
-		{"id": "gpt-4o-audio-preview", "modalities":["text", "audio"], "priority": 10}
+		{
+			"modalities": ["text", "image"], "priority": 10,
+			"kwargs": {
+				"filter": {
+					"model": "gpt-5-mini",
+					"reasoning_effort": "minimal"
+				},
+				"join": {
+					"model": "gpt-5-mini",
+					"reasoning_effort": "minimal"
+				}
+			}
+		},
+		...
 	]
 }
 ```
@@ -22,9 +34,9 @@ Each entry in the `models` list is a dictionary with the following properties:
 
 | Property | Semantics |
 | --- | --- |
-| id | The model ID used by OpenAI |
 | modalities | A list of supported data modalities |
 | priority | ThalamusDB prefers models with higher priority |
+| kwargs | The configuration to use for each semantic operator |
 
 The following data modalities are recognized:
 - `text`
