@@ -42,7 +42,7 @@ For instance, try out the example database in this repository:
 ```bash
 git clone https://github.com/itrummer/thalamusdb
 cd thalamusdb
-thalamusdb cars.db --modelconfigpath=config/models.json
+thalamusdb data/cars.db --modelconfigpath=config/models.json
 ```
 
 The cars database contains a single table with the following schema:
