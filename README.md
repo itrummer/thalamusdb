@@ -25,7 +25,7 @@ Install ThalamusDB using pip:
 pip install thalamusdb
 ```
 
-You need an OpenAI API key to use ThalamusDB. This key must be stored in the environment variable `OPENAI_API_KEY`. On Linux platforms, you can set the variable using the following command:
+ThalamusDB can use language models from various providers, including OpenAI and Google. Store the access key of the provider you plan to use in an environment variable. For instance, if using OpenAI, set the `OPENAI_API_KEY` environment variable using the following command on Linux platforms:
 
 ```bash
 export OPENAI_API_KEY=[Your OpenAI API Key]
@@ -34,18 +34,17 @@ export OPENAI_API_KEY=[Your OpenAI API Key]
 Now you can run the ThalamusDB console using the following command:
 
 ```bash
-thalamusdb [Path to DuckDB database file]
+thalamusdb [Path to DuckDB database file] --modelconfigpath=[Path to model configuration file]
 ```
 
 For instance, try out the example database in this repository:
 
 ```bash
 git clone https://github.com/itrummer/thalamusdb
-cd thalamusdb/data/cars
-thalamusdb cars.db
+cd thalamusdb
+thalamusdb data/cars.db --modelconfigpath=config/models.json
 ```
 
-*Note: You must start `ThalamusDB` from the directory containing the `cars.db` file as the database contains relative paths to image files (see next).*
 The cars database contains a single table with the following schema:
 
 ```sql
@@ -79,12 +78,39 @@ To represent images, create a column of SQL type `text` in your table and store 
 
 # Query Language
 
-ThalamusDB supports SQL queries with semantic filter predicates. Specifically, ThalamusDB supports two types of semantic filters:
+ThalamusDB supports SQL queries with semantic filter predicates. Specifically, ThalamusDB supports two types of semantic filters (both must appear in the SQL `WHERE` clause):
 
 | Operator | Semantics |
 | --- | --- |
 | `NLfilter([Column], [Condition])` | Filters rows based on a condition in natural language |
 | `NLjoin([Column in Table 1], [Column in Table2], [Condition])` | Filters row pairs using the join condition in natural language |
+
+# Configuring Models
+
+ThalamusDB works with models of various providers. Users specify the models to use on specific data types in a model configuration file. Also, the configuration file enables users to configure models for specific operators (e.g., by setting the `temperature` parameter or `reasoning_effort`). You can find an example configuration file in this repository at `config/models.json`.
+
+The model configuration file contains a dictionary with a single field, `models`, that stores a list of model configurations. Each list entry is a dictionary with three fields:
+- `modalities`: a list of data modalities the model can process (a subset of "text", "image", and "audio").
+- `priority`: if multiple models can be used to serve a request, ThalamusDB prefers the ones with higher priority.
+- `kwargs`: describes the parameter settings used for each semantic operator (parameters include the model ID).
+
+The `kwargs` field is a dictionary that contains two fields: `filter` and `join`. Each field contains the settings (mapping from parameter names to values) that are used when calling the language model for the corresponding semantic operator (semantic filter or join). The following entry is an example model configuration, setting up both semantic operators to use the GPT-5 Mini model:
+
+```json
+{
+	"modalities": ["text", "image"], "priority": 10,
+	"kwargs": {
+		"filter": {
+			"model": "gpt-5-mini",
+			"reasoning_effort": "minimal"
+		},
+		"join": {
+			"model": "gpt-5-mini",
+			"reasoning_effort": "minimal"
+		}
+	}
+}
+```
 
 # Approximate Processing
 
